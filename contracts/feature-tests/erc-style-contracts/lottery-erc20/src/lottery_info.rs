@@ -1,10 +1,11 @@
-use elrond_wasm::{
+use multiversx_sc::{
     api::ManagedTypeApi,
     types::{BigUint, ManagedAddress, Vec},
 };
-elrond_wasm::derive_imports!();
+multiversx_sc::derive_imports!();
 
-#[derive(NestedEncode, NestedDecode, TopEncode, TopDecode, TypeAbi)]
+#[type_abi]
+#[derive(NestedEncode, NestedDecode, TopEncode, TopDecode)]
 pub struct LotteryInfo<M: ManagedTypeApi> {
     pub ticket_price: BigUint<M>,
     pub tickets_left: u32,

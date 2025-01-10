@@ -1,18 +1,29 @@
-use elrond_wasm::{abi::EndpointLocationAbi, contract_base::ContractAbiProvider};
-use elrond_wasm_debug::*;
+use multiversx_sc_meta_lib::abi_json;
+use multiversx_sc_scenario::*;
 
 use std::{fs, fs::File, io::Write};
 
 #[test]
 fn use_module_abi_generated_ok() {
-    // generate ABI
-    let original_contract_abi = <use_module::AbiProvider>::abi();
-    let main_contract_abi = original_contract_abi.main_contract();
-    let view_contract_abi =
-        original_contract_abi.secondary_contract(EndpointLocationAbi::ViewContract);
+    let mut blockchain = ScenarioWorld::new();
+    blockchain.set_current_dir_from_workspace("contracts/feature-tests/use-module");
 
-    let main_contract_abi_json = abi_json::abi_to_json_dummy_environment(&main_contract_abi);
-    let view_contract_abi_json = abi_json::abi_to_json_dummy_environment(&view_contract_abi);
+    // generate ABI
+    let multi_contract_config = multiversx_sc_meta_lib::multi_contract_config::<
+        use_module::AbiProvider,
+    >(blockchain.current_dir().as_path());
+
+    let main_contract = multi_contract_config.find_contract("use-module");
+    assert!(!main_contract.settings.external_view);
+    let view_contract = multi_contract_config.find_contract("use-module-view");
+    assert!(view_contract.settings.external_view);
+    assert_eq!(
+        view_contract.endpoint_names(),
+        vec!["external_view_mod_a", "external_view_mod_b"]
+    );
+
+    let main_contract_abi_json = abi_json::abi_to_json_dummy_environment(&main_contract.abi);
+    let view_contract_abi_json = abi_json::abi_to_json_dummy_environment(&view_contract.abi);
 
     // save generated ABI to disk for easier comparison in case something is off
     let mut file = File::create("use_module_generated_main.abi.json").unwrap();

@@ -1,18 +1,18 @@
 [package]
 name = "local-esdt-and-nft"
 version = "0.0.0"
-authors = ["Dorin Iancu <dorin.iancu@elrond.com>"]
-edition = "2018"
+authors = ["Dorin Iancu <dorin.iancu@multiversx.com>"]
+edition = "2021"
 publish = false
 
 [lib]
 path = "src/lib.rs"
 
 
-[dependencies.elrond-wasm]
-version = "0.34.1"
-path = "../../../../elrond-wasm"
+[dependencies.multiversx-sc]
+version = "0.55.0"
+path = "../../../../framework/base"
 
-[dev-dependencies.elrond-wasm-debug]
-version = "0.34.1"
-path = "../../../../elrond-wasm-debug"
+[dev-dependencies.multiversx-sc-scenario]
+version = "0.55.0"
+path = "../../../../framework/scenario"

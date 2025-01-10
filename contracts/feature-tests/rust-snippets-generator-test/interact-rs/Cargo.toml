@@ -1,0 +1,21 @@
+[package]
+name = "rust-interact"
+version = "0.0.0"
+authors = ["you"]
+edition = "2021"
+publish = false
+
+[[bin]]
+name = "rust-interact"
+path = "src/interactor_main.rs"
+
+[dependencies.rust-snippets-generator-test]
+path = ".."
+
+[dependencies.multiversx-sc-snippets]
+version = "0.55.0"
+path = "../../../../framework/snippets"
+
+# [workspace]
+
+

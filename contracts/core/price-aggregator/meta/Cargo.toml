@@ -1,16 +1,17 @@
 [package]
-name = "elrond-sc-price-aggregator-meta"
+name = "multiversx-price-aggregator-sc-meta"
 version = "0.0.0"
-edition = "2018"
+edition = "2021"
 publish = false
 
-[dependencies.elrond-sc-price-aggregator]
+[dependencies.multiversx-price-aggregator-sc]
 path = ".."
 
-[dependencies.elrond-wasm]
-version = "0.34.1"
-path = "../../../../elrond-wasm"
+[dependencies.multiversx-sc]
+version = "0.55.0"
+path = "../../../../framework/base"
 
-[dependencies.elrond-wasm-debug]
-version = "0.34.1"
-path = "../../../../elrond-wasm-debug"
+[dependencies.multiversx-sc-meta-lib]
+version = "0.55.0"
+path = "../../../../framework/meta-lib"
+default-features = false

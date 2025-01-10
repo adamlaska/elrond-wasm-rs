@@ -1,12 +1,12 @@
 [package]
 name = "random"
 version = "0.0.0"
-authors = [ "dorin-iancu <dorin.iancu@elrond.com>",]
-edition = "2018"
+authors = [ "dorin-iancu <dorin.iancu@multiversx.com>",]
+edition = "2021"
 
 [lib]
 path = "src/lib.rs"
 
-[dependencies.elrond-wasm]
-version = "0.34.1"
-path = "../../../../../elrond-wasm"
+[dependencies.multiversx-sc]
+version = "0.55.0"
+path = "../../../../../framework/base"

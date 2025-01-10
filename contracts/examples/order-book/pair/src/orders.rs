@@ -1,5 +1,4 @@
-elrond_wasm::imports!();
-elrond_wasm::derive_imports!();
+use multiversx_sc::imports::*;
 
 use crate::common::{FEE_PENALTY_INCREASE_EPOCHS, FEE_PENALTY_INCREASE_PERCENT};
 
@@ -10,7 +9,7 @@ use super::common::{
     PERCENT_BASE_POINTS,
 };
 
-#[elrond_wasm::module]
+#[multiversx_sc::module]
 pub trait OrdersModule:
     events::EventsModule + common::CommonModule + validation::ValidationModule
 {
@@ -283,7 +282,7 @@ pub trait OrdersModule:
         let mut orders_vec = MultiValueManagedVec::new();
         for order in orders.iter() {
             if order.order_type == order_type {
-                orders_vec.push(order);
+                orders_vec.push(order.clone());
             }
         }
 
@@ -354,12 +353,10 @@ pub trait OrdersModule:
     fn execute_transfers(&self, transfers: ManagedVec<Transfer<Self::Api>>) {
         for transfer in &transfers {
             if transfer.payment.amount > 0 {
-                self.send().direct_esdt(
-                    &transfer.to,
-                    &transfer.payment.token_id,
-                    0,
-                    &transfer.payment.amount,
-                )
+                self.tx()
+                    .to(&transfer.to)
+                    .single_esdt(&transfer.payment.token_id, 0, &transfer.payment.amount)
+                    .transfer();
             }
         }
     }
@@ -370,7 +367,7 @@ pub trait OrdersModule:
 
     fn get_and_increase_order_id_counter(&self) -> u64 {
         let id = self.order_id_counter().get();
-        self.order_id_counter().set(&(id + 1));
+        self.order_id_counter().set(id + 1);
         id
     }
 

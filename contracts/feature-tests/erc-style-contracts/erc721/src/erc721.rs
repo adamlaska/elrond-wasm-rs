@@ -1,8 +1,8 @@
 #![no_std]
 
-elrond_wasm::imports!();
+multiversx_sc::imports!();
 
-#[elrond_wasm::contract]
+#[multiversx_sc::contract]
 pub trait NonFungibleTokens {
     #[init]
     fn init(&self, initial_minted: u64) {
@@ -92,9 +92,9 @@ pub trait NonFungibleTokens {
             self.token_owner(id).set(new_token_owner);
         }
 
-        self.total_minted().set(&(total_minted + count));
+        self.total_minted().set(total_minted + count);
         self.token_count(new_token_owner)
-            .set(&(new_owner_current_total + count));
+            .set(new_owner_current_total + count);
     }
 
     fn perform_transfer(&self, token_id: u64, from: &ManagedAddress, to: &ManagedAddress) {

@@ -1,24 +1,25 @@
-elrond_wasm::imports!();
-elrond_wasm::derive_imports!();
+multiversx_sc::imports!();
+multiversx_sc::derive_imports!();
 
-#[derive(TypeAbi, TopEncode, TopDecode)]
+#[type_abi]
+#[derive(TopEncode, TopDecode)]
 pub struct RgbColor {
     r: u8,
     g: u8,
     b: u8,
 }
 
-#[elrond_wasm::module]
+#[multiversx_sc::module]
 pub trait NonFungibleTokenMapperFeatures:
-    elrond_wasm_modules::default_issue_callbacks::DefaultIssueCallbacksModule
+    multiversx_sc_modules::default_issue_callbacks::DefaultIssueCallbacksModule
 {
     #[payable("EGLD")]
     #[endpoint]
     fn issue_and_set_all_roles_meta(&self, token_ticker: ManagedBuffer) {
-        let payment = self.call_value().egld_value();
+        let payment = self.call_value().egld();
         self.non_fungible_token_mapper().issue_and_set_all_roles(
             EsdtTokenType::Meta,
-            payment,
+            payment.clone(),
             ManagedBuffer::new(),
             token_ticker,
             0,
@@ -28,7 +29,7 @@ pub trait NonFungibleTokenMapperFeatures:
 
     #[endpoint]
     fn mapper_nft_set_token_id(&self, token_id: TokenIdentifier) {
-        self.non_fungible_token_mapper().set_token_id(&token_id);
+        self.non_fungible_token_mapper().set_token_id(token_id);
     }
 
     #[endpoint]
@@ -92,5 +93,5 @@ pub trait NonFungibleTokenMapperFeatures:
 
     #[view(getNonFungibleTokenId)]
     #[storage_mapper("nonFungibleTokenMapper")]
-    fn non_fungible_token_mapper(&self) -> NonFungibleTokenMapper<Self::Api>;
+    fn non_fungible_token_mapper(&self) -> NonFungibleTokenMapper;
 }

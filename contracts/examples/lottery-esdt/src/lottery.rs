@@ -1,6 +1,6 @@
 #![no_std]
 
-elrond_wasm::imports!();
+use multiversx_sc::imports::*;
 
 mod lottery_info;
 mod status;
@@ -12,11 +12,12 @@ const PERCENTAGE_TOTAL: u32 = 100;
 const THIRTY_DAYS_IN_SECONDS: u64 = 60 * 60 * 24 * 30;
 const MAX_TICKETS: usize = 800;
 
-#[elrond_wasm::contract]
+#[multiversx_sc::contract]
 pub trait Lottery {
     #[init]
     fn init(&self) {}
 
+    #[allow_multiple_var_args]
     #[endpoint]
     fn start(
         &self,
@@ -43,6 +44,7 @@ pub trait Lottery {
         );
     }
 
+    #[allow_multiple_var_args]
     #[endpoint(createLotteryPool)]
     fn create_lottery_pool(
         &self,
@@ -69,6 +71,7 @@ pub trait Lottery {
         );
     }
 
+    #[allow_multiple_var_args]
     #[allow(clippy::too_many_arguments)]
     fn start_lottery(
         &self,
@@ -145,7 +148,7 @@ pub trait Lottery {
         if let Some(whitelist) = opt_whitelist.as_option() {
             let mut mapper = self.lottery_whitelist(&lottery_name);
             for addr in &*whitelist {
-                mapper.insert(addr);
+                mapper.insert(addr.clone());
             }
         }
 
@@ -163,7 +166,7 @@ pub trait Lottery {
     }
 
     #[endpoint]
-    #[payable("*")]
+    #[payable]
     fn buy_ticket(&self, lottery_name: ManagedBuffer) {
         let (token_identifier, payment) = self.call_value().egld_or_single_fungible_esdt();
 
@@ -238,7 +241,7 @@ pub trait Lottery {
         info.tickets_left -= 1;
         info.prize_pool += &info.ticket_price;
 
-        entries_mapper.set(&entries);
+        entries_mapper.set(entries);
         info_mapper.set(&info);
     }
 
@@ -270,7 +273,7 @@ pub trait Lottery {
         // the 1st place gets the leftover, maybe could split between the remaining
         // but this is a rare case anyway and it's not worth the overhead
         let total_winning_tickets = if total_tickets < info.prize_distribution.len() {
-            total_tickets as usize
+            total_tickets
         } else {
             info.prize_distribution.len()
         };
@@ -288,19 +291,19 @@ pub trait Lottery {
                 &BigUint::from(info.prize_distribution.get(i)),
             );
 
-            self.send()
-                .direct(&winner_address, &info.token_identifier, 0, &prize);
+            self.tx()
+                .to(&winner_address)
+                .egld_or_single_esdt(&info.token_identifier, 0, &prize)
+                .transfer();
             info.prize_pool -= prize;
         }
 
         // send leftover to first place
         let first_place_winner = ticket_holders_mapper.get(winning_tickets[0]);
-        self.send().direct(
-            &first_place_winner,
-            &info.token_identifier,
-            0,
-            &info.prize_pool,
-        );
+        self.tx()
+            .to(&first_place_winner)
+            .egld_or_single_esdt(&info.token_identifier, 0, &info.prize_pool)
+            .transfer();
     }
 
     fn clear_storage(&self, lottery_name: &ManagedBuffer) {
@@ -342,7 +345,7 @@ pub trait Lottery {
         }
 
         let total_numbers = rand_numbers.len();
-        let mut rand = RandomnessSource::<Self::Api>::new();
+        let mut rand = RandomnessSource::new();
 
         for i in 0..amount {
             let rand_index = rand.next_usize_in_range(0, total_numbers);

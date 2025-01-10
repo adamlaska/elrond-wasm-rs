@@ -1,14 +1,13 @@
-elrond_wasm::imports!();
-elrond_wasm::derive_imports!();
+use multiversx_sc::imports::*;
 
 use super::common::{Order, OrderType};
 
-#[elrond_wasm::module]
+#[multiversx_sc::module]
 pub trait EventsModule {
     fn emit_order_event(&self, order: Order<Self::Api>) {
         let caller = self.blockchain().get_caller();
         let epoch = self.blockchain().get_block_epoch();
-        let order_type = order.order_type.clone();
+        let order_type = order.order_type;
 
         self.order_event(caller, epoch, order_type, order);
     }
@@ -32,7 +31,7 @@ pub trait EventsModule {
         for order in orders.iter() {
             let order_type = order.order_type;
             let order_id = order.id;
-            let order_creator = order.creator;
+            let order_creator = &order.creator;
 
             self.match_order_event(&caller, epoch, order_type, order_id, order_creator);
         }
@@ -45,7 +44,7 @@ pub trait EventsModule {
         for order in orders.iter() {
             let order_type = order.order_type;
             let order_id = order.id;
-            let order_creator = order.creator;
+            let order_creator = &order.creator;
 
             self.free_order_event(&caller, epoch, order_type, order_id, order_creator);
         }
@@ -76,7 +75,7 @@ pub trait EventsModule {
         #[indexed] epoch: u64,
         #[indexed] order_type: OrderType,
         #[indexed] order_id: u64,
-        #[indexed] order_creator: ManagedAddress,
+        #[indexed] order_creator: &ManagedAddress,
     );
 
     #[event("free_order")]
@@ -86,6 +85,6 @@ pub trait EventsModule {
         #[indexed] epoch: u64,
         #[indexed] order_type: OrderType,
         #[indexed] order_id: u64,
-        #[indexed] order_creator: ManagedAddress,
+        #[indexed] order_creator: &ManagedAddress,
     );
 }

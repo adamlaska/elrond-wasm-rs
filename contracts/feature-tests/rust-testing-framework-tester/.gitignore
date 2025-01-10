@@ -3,8 +3,8 @@
 /target/
 */target/
 
-# The erdpy output
+# The mxpy output
 output
 
 # Mandos test trace
-mandos/trace*.scen.json
+scenarios/trace*.scen.json

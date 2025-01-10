@@ -1,7 +1,7 @@
-elrond_wasm::imports!();
+multiversx_sc::imports!();
 
 /// Checks that BigFloat operators work as expected.
-#[elrond_wasm::module]
+#[multiversx_sc::module]
 #[allow(clippy::redundant_clone)]
 pub trait BigFloatOperators {
     #[endpoint]

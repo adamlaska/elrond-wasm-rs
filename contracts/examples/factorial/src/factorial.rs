@@ -1,11 +1,15 @@
 #![no_std]
+#![allow(unused_imports)]
 
-elrond_wasm::imports!();
+use multiversx_sc::imports::*;
 
-#[elrond_wasm::contract]
+#[multiversx_sc::contract]
 pub trait Factorial {
     #[init]
     fn init(&self) {}
+
+    #[upgrade]
+    fn upgrade(&self) {}
 
     #[endpoint]
     fn factorial(&self, value: BigUint) -> BigUint {

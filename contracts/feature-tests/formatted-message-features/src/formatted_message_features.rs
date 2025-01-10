@@ -1,8 +1,8 @@
 #![no_std]
 
-elrond_wasm::imports!();
+use multiversx_sc::imports::*;
 
-#[elrond_wasm::contract]
+#[multiversx_sc::contract]
 pub trait FormattedMessageFeatures {
     #[init]
     fn init(&self) {}
@@ -73,6 +73,21 @@ pub trait FormattedMessageFeatures {
     }
 
     #[endpoint]
+    fn print_message_bytes(&self, x: &[u8]) {
+        sc_print!("Printing x: {}", x,);
+    }
+
+    #[endpoint]
+    fn print_message_hex_bytes(&self, x: &[u8]) {
+        sc_print!("Printing x: {:x}", x,);
+    }
+
+    #[endpoint]
+    fn print_message_binary_bytes(&self, x: &[u8]) {
+        sc_print!("Printing x: {:b}", x);
+    }
+
+    #[endpoint]
     fn format_message_one_part(&self) -> ManagedBuffer {
         let message = sc_format!("Test");
         message
@@ -87,6 +102,12 @@ pub trait FormattedMessageFeatures {
     #[endpoint]
     fn format_message_big_int(&self, x: BigInt) -> ManagedBuffer {
         let message = sc_format!("BigInt: {}", x);
+        message
+    }
+
+    #[endpoint]
+    fn format_message_i64(&self, x: i64) -> ManagedBuffer {
+        let message = sc_format!("i64: {}", x);
         message
     }
 

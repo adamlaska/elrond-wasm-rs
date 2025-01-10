@@ -1,7 +1,7 @@
-elrond_wasm::imports!();
+multiversx_sc::imports!();
 
 /// Example of a module that contains the constructor.
-#[elrond_wasm::module]
+#[multiversx_sc::module]
 pub trait InternalModuleInit {
     /// The constructor can reside in a module.
     /// The method can have any name.

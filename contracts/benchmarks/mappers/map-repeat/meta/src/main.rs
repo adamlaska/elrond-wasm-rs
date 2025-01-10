@@ -1,3 +1,3 @@
 fn main() {
-    elrond_wasm_debug::meta::perform::<map_repeat::AbiProvider>();
+    multiversx_sc_meta_lib::cli_main::<map_repeat::AbiProvider>();
 }

@@ -1,7 +1,7 @@
-elrond_wasm::imports!();
+multiversx_sc::imports!();
 
 /// Storage mapper test.
-#[elrond_wasm::module]
+#[multiversx_sc::module]
 pub trait MapStorageMapperFeatures {
     #[storage_mapper("map_storage_mapper")]
     fn map_storage_mapper(&self) -> MapStorageMapper<u32, MapMapper<u32, u32>>;
@@ -46,24 +46,19 @@ pub trait MapStorageMapperFeatures {
     }
 
     #[endpoint]
-    fn map_storage_mapper_insert_value(
-        &self,
-        item: u32,
-        key: u32,
-        value: u32,
-    ) -> SCResult<Option<u32>> {
+    fn map_storage_mapper_insert_value(&self, item: u32, key: u32, value: u32) -> Option<u32> {
         let map_storage_mapper = self.map_storage_mapper();
         if let Some(mut map) = map_storage_mapper.get(&item) {
-            return Ok(map.insert(key, value));
+            return map.insert(key, value);
         }
         sc_panic!("No storage!")
     }
 
     #[endpoint]
-    fn map_storage_mapper_get_value(&self, item: u32, key: u32) -> SCResult<Option<u32>> {
+    fn map_storage_mapper_get_value(&self, item: u32, key: u32) -> Option<u32> {
         let map_storage_mapper = self.map_storage_mapper();
         if let Some(map) = map_storage_mapper.get(&item) {
-            return Ok(map.get(&key));
+            return map.get(&key);
         }
         sc_panic!("No storage!")
     }

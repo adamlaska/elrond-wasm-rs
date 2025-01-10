@@ -1,8 +1,8 @@
-elrond_wasm::imports!();
+multiversx_sc::imports!();
 
-#[elrond_wasm::module]
+#[multiversx_sc::module]
 pub trait FungibleTokenMapperFeatures:
-    elrond_wasm_modules::default_issue_callbacks::DefaultIssueCallbacksModule
+    multiversx_sc_modules::default_issue_callbacks::DefaultIssueCallbacksModule
 {
     #[payable("EGLD")]
     #[endpoint]
@@ -11,9 +11,9 @@ pub trait FungibleTokenMapperFeatures:
         token_ticker: ManagedBuffer,
         initial_supply: BigUint,
     ) {
-        let payment_amount = self.call_value().egld_value();
+        let payment_amount = self.call_value().egld();
         self.fungible_token_mapper().issue(
-            payment_amount,
+            payment_amount.clone(),
             ManagedBuffer::new(),
             token_ticker,
             initial_supply,
@@ -25,7 +25,7 @@ pub trait FungibleTokenMapperFeatures:
     #[payable("EGLD")]
     #[endpoint]
     fn issue_fungible_custom_callback(&self, token_ticker: ManagedBuffer, initial_supply: BigUint) {
-        let payment = self.call_value().egld_value();
+        let payment = self.call_value().egld();
         let cb = if initial_supply > 0 {
             FungibleTokenMapperFeatures::callbacks(self).custom_issue_non_zero_supply_cb()
         } else {
@@ -33,7 +33,7 @@ pub trait FungibleTokenMapperFeatures:
         };
 
         self.fungible_token_mapper().issue(
-            payment,
+            payment.clone(),
             ManagedBuffer::new(),
             token_ticker,
             initial_supply,
@@ -49,9 +49,11 @@ pub trait FungibleTokenMapperFeatures:
     ) {
         match result {
             ManagedAsyncCallResult::Ok(token_id) => {
-                self.fungible_token_mapper().set_token_id(&token_id);
+                self.fungible_token_mapper().set_token_id(token_id);
             },
-            ManagedAsyncCallResult::Err(_) => {},
+            ManagedAsyncCallResult::Err(_) => {
+                self.fungible_token_mapper().clear();
+            },
         }
     }
 
@@ -59,19 +61,22 @@ pub trait FungibleTokenMapperFeatures:
     fn custom_issue_non_zero_supply_cb(&self, #[call_result] result: ManagedAsyncCallResult<()>) {
         match result {
             ManagedAsyncCallResult::Ok(()) => {
-                let token_identifier = self.call_value().single_esdt().token_identifier;
-                self.fungible_token_mapper().set_token_id(&token_identifier);
+                let token_identifier = &self.call_value().single_esdt().token_identifier;
+                self.fungible_token_mapper()
+                    .set_token_id(token_identifier.clone());
             },
-            ManagedAsyncCallResult::Err(_) => {},
+            ManagedAsyncCallResult::Err(_) => {
+                self.fungible_token_mapper().clear();
+            },
         }
     }
 
     #[payable("EGLD")]
     #[endpoint]
     fn issue_and_set_all_roles_fungible(&self, token_ticker: ManagedBuffer) {
-        let payment = self.call_value().egld_value();
+        let payment = self.call_value().egld();
         self.fungible_token_mapper().issue_and_set_all_roles(
-            payment,
+            payment.clone(),
             ManagedBuffer::new(),
             token_ticker,
             0,
@@ -91,7 +96,7 @@ pub trait FungibleTokenMapperFeatures:
     fn set_roles_callback(&self, #[call_result] result: ManagedAsyncCallResult<()>) {
         match result {
             ManagedAsyncCallResult::Ok(()) => {
-                self.roles_set().set(&true);
+                self.roles_set().set(true);
             },
             ManagedAsyncCallResult::Err(_) => {},
         }
@@ -124,9 +129,9 @@ pub trait FungibleTokenMapperFeatures:
     #[payable("*")]
     #[endpoint]
     fn require_same_token_fungible(&self) {
-        let payment_token = self.call_value().single_esdt().token_identifier;
+        let payment_token = &self.call_value().single_esdt().token_identifier;
         self.fungible_token_mapper()
-            .require_same_token(&payment_token);
+            .require_same_token(payment_token);
     }
 
     #[payable("*")]
@@ -139,7 +144,7 @@ pub trait FungibleTokenMapperFeatures:
 
     #[view(getFungibleTokenId)]
     #[storage_mapper("fungibleTokenMapper")]
-    fn fungible_token_mapper(&self) -> FungibleTokenMapper<Self::Api>;
+    fn fungible_token_mapper(&self) -> FungibleTokenMapper;
 
     #[storage_mapper("rolesSet")]
     fn roles_set(&self) -> SingleValueMapper<bool>;

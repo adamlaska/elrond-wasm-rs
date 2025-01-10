@@ -1,0 +1,53 @@
+{
+    "steps": [
+        {
+            "step": "setState",
+            "accounts": {
+                "sc:mcf": {
+                    "nonce": "0",
+                    "balance": "0",
+                    "code": "mxsc:../output/multi-contract-features.mxsc.json"
+                },
+                "sc:mcf-view": {
+                    "nonce": "0",
+                    "balance": "0",
+                    "code": "mxsc:../output/multi-contract-features-view.mxsc.json"
+                },
+                "address:an-account": {
+                    "nonce": "0",
+                    "balance": "0"
+                }
+            }
+        },
+        {
+            "step": "scQuery",
+            "id": "external-function-in-external-view",
+            "tx": {
+                "to": "sc:mcf-view",
+                "function": "external_pure",
+                "arguments": []
+            },
+            "expect": {
+                "out": [
+                    "1"
+                ],
+                "status": "",
+                "logs": []
+            }
+        },
+        {
+            "step": "scQuery",
+            "id": "external-function-not-in-main",
+            "tx": {
+                "to": "sc:mcf",
+                "function": "external_pure",
+                "arguments": []
+            },
+            "expect": {
+                "out": [],
+                "status": "1",
+                "message": "str:invalid function (not found)"
+            }
+        }
+    ]
+}

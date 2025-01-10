@@ -1,3 +1,3 @@
 fn main() {
-    elrond_wasm_debug::meta::perform::<erc1155_user_mock::AbiProvider>();
+    multiversx_sc_meta_lib::cli_main::<erc1155_user_mock::AbiProvider>();
 }
