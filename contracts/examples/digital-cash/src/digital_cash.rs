@@ -1,116 +1,95 @@
 #![no_std]
 #![allow(unused_attributes)]
 
-elrond_wasm::imports!();
-elrond_wasm::derive_imports!();
+use multiversx_sc::imports::*;
 
+mod constants;
 mod deposit_info;
-use deposit_info::DepositInfo;
+pub mod digital_cash_proxy;
+mod helpers;
+mod pay_fee_and_fund;
+mod signature_operations;
+mod storage;
 
-pub const SECONDS_PER_ROUND: u64 = 6;
-pub use elrond_wasm::api::{ED25519_KEY_BYTE_LEN, ED25519_SIGNATURE_BYTE_LEN};
+use constants::*;
 
-#[elrond_wasm::contract]
-pub trait DigitalCash {
+#[multiversx_sc::contract]
+pub trait DigitalCash:
+    pay_fee_and_fund::PayFeeAndFund
+    + signature_operations::SignatureOperationsModule
+    + helpers::HelpersModule
+    + storage::StorageModule
+{
     #[init]
-    fn init(&self) {}
-
-    //endpoints
-
-    #[endpoint]
-    #[payable("*")]
-    fn fund(&self, address: ManagedAddress, valability: u64) {
-        let payment = self.call_value().egld_or_single_esdt();
-        require!(
-            payment.amount > BigUint::zero(),
-            "amount must be greater than 0"
-        );
-        require!(self.deposit(&address).is_empty(), "key already used");
-
-        let deposit = DepositInfo {
-            amount: payment.amount,
-            depositor_address: self.blockchain().get_caller(),
-            expiration_round: self.get_expiration_round(valability),
-            token_name: payment.token_identifier,
-            nonce: payment.token_nonce,
-        };
-
-        self.deposit(&address).set(&deposit);
+    fn init(&self, fee: BigUint, token: EgldOrEsdtTokenIdentifier) {
+        self.whitelist_fee_token(fee, token);
     }
 
-    #[endpoint]
-    fn withdraw(&self, address: ManagedAddress) {
-        require!(!self.deposit(&address).is_empty(), "non-existent key");
-
-        let deposit = self.deposit(&address).get();
-
-        require!(
-            deposit.expiration_round < self.blockchain().get_block_round(),
-            "withdrawal has not been available yet"
-        );
-        self.send().direct(
-            &deposit.depositor_address,
-            &deposit.token_name,
-            deposit.nonce,
-            &deposit.amount,
-        );
-
-        self.deposit(&address).clear();
+    #[endpoint(whitelistFeeToken)]
+    #[only_owner]
+    fn whitelist_fee_token(&self, fee: BigUint, token: EgldOrEsdtTokenIdentifier) {
+        require!(self.fee(&token).is_empty(), "Token already whitelisted");
+        self.fee(&token).set(fee);
+        self.whitelisted_fee_tokens().insert(token.clone());
+        self.all_time_fee_tokens().insert(token);
     }
 
-    #[endpoint]
-    fn claim(
+    #[endpoint(blacklistFeeToken)]
+    #[only_owner]
+    fn blacklist_fee_token(&self, token: EgldOrEsdtTokenIdentifier) {
+        require!(!self.fee(&token).is_empty(), "Token is not whitelisted");
+        self.fee(&token).clear();
+        self.whitelisted_fee_tokens().swap_remove(&token);
+    }
+
+    #[endpoint(claimFees)]
+    #[only_owner]
+    fn claim_fees(&self) {
+        let fee_tokens_mapper = self.all_time_fee_tokens();
+        let fee_tokens = fee_tokens_mapper.iter();
+        let caller_address = self.blockchain().get_caller();
+        let mut collected_esdt_fees = ManagedVec::new();
+        for token in fee_tokens {
+            let fee = self.collected_fees(&token).take();
+            if fee == 0 {
+                continue;
+            }
+            if token == EgldOrEsdtTokenIdentifier::egld() {
+                self.tx().to(&caller_address).egld(&fee).transfer();
+            } else {
+                let collected_fee = EsdtTokenPayment::new(token.unwrap_esdt(), 0, fee);
+                collected_esdt_fees.push(collected_fee);
+            }
+        }
+        if !collected_esdt_fees.is_empty() {
+            self.tx()
+                .to(&caller_address)
+                .payment(&collected_esdt_fees)
+                .transfer();
+        }
+    }
+
+    #[view(getAmount)]
+    fn get_amount(
         &self,
         address: ManagedAddress,
-        signature: ManagedByteArray<Self::Api, ED25519_SIGNATURE_BYTE_LEN>,
-    ) {
-        require!(!self.deposit(&address).is_empty(), "non-existent key");
+        token: EgldOrEsdtTokenIdentifier,
+        nonce: u64,
+    ) -> BigUint {
+        let deposit_mapper = self.deposit(&address);
+        require!(!deposit_mapper.is_empty(), NON_EXISTENT_KEY_ERR_MSG);
 
-        let deposit = self.deposit(&address).get();
-        let caller_address = self.blockchain().get_caller();
+        let deposit = deposit_mapper.get();
+        if token.is_egld() {
+            return deposit.egld_funds;
+        }
 
-        require!(
-            deposit.expiration_round >= self.blockchain().get_block_round(),
-            "deposit expired"
-        );
+        for esdt in deposit.esdt_funds.into_iter() {
+            if esdt.token_identifier == token && esdt.token_nonce == nonce {
+                return esdt.amount;
+            }
+        }
 
-        let key = address.as_managed_byte_array();
-        let message = caller_address.as_managed_buffer();
-        require!(
-            self.crypto()
-                .verify_ed25519_legacy_managed::<32>(key, message, &signature),
-            "invalid signature"
-        );
-
-        self.send().direct(
-            &caller_address,
-            &deposit.token_name,
-            deposit.nonce,
-            &deposit.amount,
-        );
-        self.deposit(&address).clear();
+        BigUint::zero()
     }
-
-    //views
-
-    #[view(amount)]
-    fn get_amount(&self, address: ManagedAddress) -> BigUint {
-        require!(!self.deposit(&address).is_empty(), "non-existent key");
-
-        let data = self.deposit(&address).get();
-        data.amount
-    }
-
-    //private functions
-
-    fn get_expiration_round(&self, valability: u64) -> u64 {
-        let valability_rounds = valability / SECONDS_PER_ROUND;
-        self.blockchain().get_block_round() + valability_rounds
-    }
-
-    //storage
-
-    #[view]
-    #[storage_mapper("deposit")]
-    fn deposit(&self, donor: &ManagedAddress) -> SingleValueMapper<DepositInfo<Self::Api>>;
 }

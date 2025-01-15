@@ -1,7 +1,7 @@
-elrond_wasm::imports!();
+multiversx_sc::imports!();
 
 /// ManagedBuffers interacting with the heap.
-#[elrond_wasm::module]
+#[multiversx_sc::module]
 pub trait ManagedBufferFeatures {
     #[endpoint]
     fn mbuffer_from_slice(&self, slice: &[u8]) -> ManagedBuffer {

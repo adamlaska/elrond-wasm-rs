@@ -1,7 +1,7 @@
-# Elrond IDE
+# IDE
 **/node_modules
 **/output/**
 **/testnet/**
 **/wallets/**
-**/erdpy.data-storage.json
+**/mxpy.data-storage.json
 **/*.interaction.json

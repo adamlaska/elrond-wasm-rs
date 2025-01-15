@@ -1,9 +1,10 @@
-use elrond_wasm::types::{BoxedBytes, Vec};
-elrond_wasm::derive_imports!();
+use multiversx_sc::types::{BoxedBytes, Vec};
+multiversx_sc::derive_imports!();
 
 /// Example serialization for a structure that uses the heap allocator.
 /// Also checking nested serialization of basic types.
-#[derive(NestedEncode, NestedDecode, TopEncode, TopDecode, TypeAbi)]
+#[type_abi]
+#[derive(NestedEncode, NestedDecode, TopEncode, TopDecode)]
 pub struct StructExampleAlloc {
     pub int: u16,
 

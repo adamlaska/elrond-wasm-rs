@@ -1,3 +1,3 @@
 fn main() {
-    elrond_wasm_debug::meta::perform::<kitty_auction::AbiProvider>();
+    multiversx_sc_meta_lib::cli_main::<kitty_auction::AbiProvider>();
 }

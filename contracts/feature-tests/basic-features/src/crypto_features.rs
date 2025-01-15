@@ -1,29 +1,11 @@
-elrond_wasm::imports!();
+multiversx_sc::imports!();
 
 /// All crypto functions provided by Arwen exposed here.
-#[elrond_wasm::module]
+#[multiversx_sc::module]
 pub trait CryptoFeatures {
-    #[endpoint]
-    #[allow(deprecated)]
-    fn compute_sha256_legacy_managed(
-        &self,
-        input: ManagedBuffer,
-    ) -> ManagedByteArray<Self::Api, 32> {
-        self.crypto().sha256_legacy_managed::<100>(&input)
-    }
-
     #[endpoint]
     fn compute_sha256(&self, input: ManagedBuffer) -> ManagedByteArray<Self::Api, 32> {
         self.crypto().sha256(&input)
-    }
-
-    #[endpoint]
-    #[allow(deprecated)]
-    fn compute_keccak256_legacy_managed(
-        &self,
-        input: ManagedBuffer,
-    ) -> ManagedByteArray<Self::Api, 32> {
-        self.crypto().keccak256_legacy_managed::<100>(&input)
     }
 
     #[endpoint]
@@ -42,7 +24,7 @@ pub trait CryptoFeatures {
         key: ManagedBuffer,
         message: ManagedBuffer,
         signature: ManagedBuffer,
-    ) -> bool {
+    ) {
         self.crypto().verify_bls(&key, &message, &signature)
     }
 
@@ -52,8 +34,8 @@ pub trait CryptoFeatures {
         key: ManagedBuffer,
         message: ManagedBuffer,
         signature: ManagedBuffer,
-    ) -> bool {
-        self.crypto().verify_ed25519(&key, &message, &signature)
+    ) {
+        self.crypto().verify_ed25519(&key, &message, &signature);
     }
 
     #[endpoint]
@@ -81,5 +63,40 @@ pub trait CryptoFeatures {
     #[endpoint]
     fn compute_secp256k1_der_signature(&self, r: ManagedBuffer, s: ManagedBuffer) -> ManagedBuffer {
         self.crypto().encode_secp256k1_der_signature(&r, &s)
+    }
+
+    #[endpoint]
+    #[label("crypto-ei-1.4")]
+    fn verify_secp256r1_signature(
+        &self,
+        key: ManagedBuffer,
+        message: ManagedBuffer,
+        signature: ManagedBuffer,
+    ) {
+        self.crypto().verify_secp256r1(&key, &message, &signature)
+    }
+
+    #[endpoint]
+    #[label("crypto-ei-1.4")]
+    fn verify_bls_signature_share(
+        &self,
+        key: ManagedBuffer,
+        message: ManagedBuffer,
+        signature: ManagedBuffer,
+    ) {
+        self.crypto()
+            .verify_bls_signature_share(&key, &message, &signature)
+    }
+
+    #[endpoint]
+    #[label("crypto-ei-1.4")]
+    fn verify_bls_aggregated_signature(
+        &self,
+        key: ManagedVec<ManagedBuffer>,
+        message: ManagedBuffer,
+        signature: ManagedBuffer,
+    ) {
+        self.crypto()
+            .verify_bls_aggregated_signature(&key, &message, &signature)
     }
 }

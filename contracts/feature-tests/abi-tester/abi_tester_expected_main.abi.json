@@ -10,16 +10,16 @@
         "contractCrate": {
             "name": "abi-tester",
             "version": "0.0.0",
-            "git_version": "<git version here>"
+            "gitVersion": "<git version here>"
         },
         "framework": {
-            "name": "elrond-wasm",
-            "version": "0.34.1"
+            "name": "multiversx-sc",
+            "version": "0.55.0"
         }
     },
     "docs": [
         "Contract whose sole purpose is to verify that",
-        "the ABI generation framework works sa expected.",
+        "the ABI generation framework works as expected.",
         "",
         "Note: any change in this contract must also be reflected in `abi_test_expected.abi.json`,",
         "including Rust docs."
@@ -31,6 +31,22 @@
         ],
         "payableInTokens": [
             "EGLD"
+        ],
+        "inputs": [
+            {
+                "name": "_constructor_arg_1",
+                "type": "i32"
+            },
+            {
+                "name": "_constructor_arg_2",
+                "type": "OnlyShowsUpInConstructor"
+            }
+        ],
+        "outputs": []
+    },
+    "upgradeConstructor": {
+        "docs": [
+            "Upgrade constructor."
         ],
         "inputs": [
             {
@@ -94,6 +110,7 @@
         },
         {
             "name": "multi_result_3",
+            "title": "result-3",
             "mutability": "mutable",
             "inputs": [],
             "outputs": [
@@ -231,6 +248,21 @@
             ]
         },
         {
+            "name": "process_managed_decimal",
+            "mutability": "mutable",
+            "inputs": [
+                {
+                    "name": "input",
+                    "type": "ManagedDecimal<10>"
+                }
+            ],
+            "outputs": [
+                {
+                    "type": "ManagedDecimal<usize>"
+                }
+            ]
+        },
+        {
             "name": "esdt_local_role",
             "mutability": "mutable",
             "inputs": [],
@@ -364,6 +396,31 @@
             ]
         },
         {
+            "name": "operation_completion_status",
+            "mutability": "readonly",
+            "inputs": [],
+            "outputs": [
+                {
+                    "type": "OperationCompletionStatus"
+                }
+            ]
+        },
+        {
+            "name": "takes_object_with_managed_buffer_read_to_end",
+            "mutability": "readonly",
+            "inputs": [
+                {
+                    "name": "arg",
+                    "type": "AbiWithManagedBufferReadToEnd"
+                }
+            ],
+            "outputs": [
+                {
+                    "type": "bytes"
+                }
+            ]
+        },
+        {
             "name": "payable_egld",
             "mutability": "mutable",
             "payableInTokens": [
@@ -420,6 +477,48 @@
                     "indexed": true
                 }
             ]
+        }
+    ],
+    "esdtAttributes": [
+        {
+            "ticker": "TICKER1",
+            "type": "BigUint"
+        },
+        {
+            "ticker": "TICKER2",
+            "type": "bytes"
+        },
+        {
+            "ticker": "TICKER3",
+            "type": "u32"
+        },
+        {
+            "ticker": "STRUCT1",
+            "type": "AbiEnum"
+        },
+        {
+            "ticker": "STRUCT2",
+            "type": "AbiManagedType"
+        },
+        {
+            "ticker": "OnlyInEsdt",
+            "type": "OnlyShowsUpInEsdtAttr"
+        },
+        {
+            "ticker": "ExplicitDiscriminant",
+            "type": "ExplicitDiscriminant"
+        },
+        {
+            "ticker": "ExplicitDiscriminantMixed",
+            "type": "ExplicitDiscriminantMixed"
+        },
+        {
+            "ticker": "ManagedDecimalVar",
+            "type": "ManagedDecimal<usize>"
+        },
+        {
+            "ticker": "ManagedDecimalConst",
+            "type": "ManagedDecimalWrapper"
         }
     ],
     "hasCallback": false,
@@ -537,6 +636,26 @@
                     ],
                     "name": "tuple_madness",
                     "type": "tuple<OnlyShowsUpAsNested02,Option<AbiTestType>>"
+                }
+            ]
+        },
+        "AbiWithManagedBufferReadToEnd": {
+            "type": "struct",
+            "docs": [
+                "Its only purpose is to test that the ABI generator works fine."
+            ],
+            "fields": [
+                {
+                    "name": "endpoint",
+                    "type": "bytes"
+                },
+                {
+                    "name": "gas",
+                    "type": "u64"
+                },
+                {
+                    "name": "flush",
+                    "type": "bytes-read-to-end"
                 }
             ]
         },
@@ -664,6 +783,87 @@
                 }
             ]
         },
+        "ExplicitDiscriminant": {
+            "type": "enum",
+            "docs": [
+                "An enum with similar explicit discriminants"
+            ],
+            "variants": [
+                {
+                    "name": "Zero",
+                    "discriminant": 0
+                },
+                {
+                    "name": "Thirty",
+                    "discriminant": 30
+                },
+                {
+                    "name": "Twelve",
+                    "discriminant": 12
+                },
+                {
+                    "name": "Fifty",
+                    "discriminant": 50
+                },
+                {
+                    "name": "FiftyOne",
+                    "discriminant": 51
+                }
+            ]
+        },
+        "ExplicitDiscriminantMixed": {
+            "type": "enum",
+            "docs": [
+                "An enum with different explicit discriminants"
+            ],
+            "variants": [
+                {
+                    "name": "Zero",
+                    "discriminant": 0
+                },
+                {
+                    "name": "Unit",
+                    "discriminant": 3
+                },
+                {
+                    "name": "Tuple",
+                    "discriminant": 4,
+                    "fields": [
+                        {
+                            "name": "0",
+                            "type": "u16"
+                        }
+                    ]
+                },
+                {
+                    "name": "Five",
+                    "discriminant": 5
+                },
+                {
+                    "name": "Struct",
+                    "discriminant": 1,
+                    "fields": [
+                        {
+                            "name": "a",
+                            "type": "u8"
+                        },
+                        {
+                            "name": "b",
+                            "type": "u16"
+                        }
+                    ]
+                }
+            ]
+        },
+        "ManagedDecimalWrapper": {
+            "type": "struct",
+            "fields": [
+                {
+                    "name": "field",
+                    "type": "ManagedDecimal<2>"
+                }
+            ]
+        },
         "OnlyShowsUpAsNested01": {
             "type": "struct",
             "docs": [
@@ -719,6 +919,12 @@
             ]
         },
         "OnlyShowsUpAsNested09": {
+            "type": "struct",
+            "docs": [
+                "Tests that the ABI generator also fetches types that only appear as fields."
+            ]
+        },
+        "OnlyShowsUpAsNested10": {
             "type": "struct",
             "docs": [
                 "Tests that the ABI generator also fetches types that only appear as fields."
@@ -787,6 +993,32 @@
                 {
                     "name": "something",
                     "type": "()"
+                }
+            ]
+        },
+        "OnlyShowsUpInEsdtAttr": {
+            "type": "struct",
+            "fields": [
+                {
+                    "name": "field",
+                    "type": "OnlyShowsUpAsNested10"
+                }
+            ]
+        },
+        "OperationCompletionStatus": {
+            "type": "explicit-enum",
+            "variants": [
+                {
+                    "docs": [
+                        "indicates that operation was completed"
+                    ],
+                    "name": "completed"
+                },
+                {
+                    "docs": [
+                        "indicates that operation was interrupted prematurely, due to low gas"
+                    ],
+                    "name": "interrupted"
                 }
             ]
         }

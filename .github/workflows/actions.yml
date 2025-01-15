@@ -5,6 +5,7 @@ on:
     branches:
       - master
   pull_request:
+  workflow_dispatch:
 
 permissions:
   checks: write
@@ -13,10 +14,23 @@ permissions:
 jobs:
   contracts:
     name: Contracts
-    uses: ElrondNetwork/elrond-actions/.github/workflows/contracts.yml@v1
+    uses: multiversx/mx-sc-actions/.github/workflows/contracts.yml@v4.2.1
     with:
-      rust-toolchain: nightly-2022-06-14
-      vmtools-version: v1.4.60
-      extra-build-args: --ignore-eei-checks
+      rust-toolchain: 1.82
+      path-to-sc-meta: framework/meta
+      mx-scenario-go-version: v3.0.0
+      coverage-args: --ignore-filename-regex='meta/src' --ignore-filename-regex='wasm-adapter' --ignore-filename-regex='benchmarks/' --ignore-filename-regex='tests/' --output ./coverage.md
     secrets:
       token: ${{ secrets.GITHUB_TOKEN }}
+
+  formatting:
+    name: cargo fmt
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      # Ensure rustfmt is installed and setup problem matcher
+      - uses: actions-rust-lang/setup-rust-toolchain@v1
+        with:
+          components: rustfmt
+      - name: Rustfmt Check
+        uses: actions-rust-lang/rustfmt@v1

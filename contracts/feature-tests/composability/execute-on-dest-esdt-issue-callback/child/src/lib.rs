@@ -1,10 +1,10 @@
 #![no_std]
 
-elrond_wasm::imports!();
+multiversx_sc::imports!();
 
 const EGLD_DECIMALS: usize = 18;
 
-#[elrond_wasm::contract]
+#[multiversx_sc::contract]
 pub trait Child {
     #[init]
     fn init(&self) {}
@@ -17,11 +17,11 @@ pub trait Child {
         token_ticker: ManagedBuffer,
         initial_supply: BigUint,
     ) {
-        let issue_cost = self.call_value().egld_value();
+        let issue_cost = self.call_value().egld();
         self.send()
             .esdt_system_sc_proxy()
             .issue_fungible(
-                issue_cost,
+                issue_cost.clone(),
                 &token_display_name,
                 &token_ticker,
                 &initial_supply,
@@ -37,9 +37,8 @@ pub trait Child {
                     can_add_special_roles: true,
                 },
             )
-            .async_call()
             .with_callback(self.callbacks().esdt_issue_callback())
-            .call_and_exit()
+            .async_call_and_exit()
     }
 
     // callbacks
@@ -47,7 +46,7 @@ pub trait Child {
     #[callback]
     fn esdt_issue_callback(&self, #[call_result] _result: IgnoreValue) {
         let (token_identifier, _amount) = self.call_value().single_fungible_esdt();
-        self.wrapped_egld_token_identifier().set(&token_identifier);
+        self.wrapped_egld_token_identifier().set(token_identifier);
     }
 
     // storage

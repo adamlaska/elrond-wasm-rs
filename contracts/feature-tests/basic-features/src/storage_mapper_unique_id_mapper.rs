@@ -1,6 +1,6 @@
-elrond_wasm::imports!();
+multiversx_sc::imports!();
 
-#[elrond_wasm::module]
+#[multiversx_sc::module]
 pub trait UniqueIdMapperFeatures {
     #[endpoint]
     fn init_unique_id_mapper(&self, len: usize) {

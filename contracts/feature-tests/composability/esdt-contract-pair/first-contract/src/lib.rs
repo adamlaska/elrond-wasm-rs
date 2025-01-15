@@ -1,12 +1,12 @@
 #![no_std]
 
-elrond_wasm::imports!();
+multiversx_sc::imports!();
 
-const ESDT_TRANSFER_STRING: &[u8] = b"ESDTTransfer";
-const SECOND_CONTRACT_ACCEPT_ESDT_PAYMENT: &[u8] = b"acceptEsdtPayment";
-const SECOND_CONTRACT_REJECT_ESDT_PAYMENT: &[u8] = b"rejectEsdtPayment";
+const ESDT_TRANSFER_STRING: &str = "ESDTTransfer";
+const SECOND_CONTRACT_ACCEPT_ESDT_PAYMENT: &str = "acceptEsdtPayment";
+const SECOND_CONTRACT_REJECT_ESDT_PAYMENT: &str = "rejectEsdtPayment";
 
-#[elrond_wasm::contract]
+#[multiversx_sc::contract]
 pub trait FirstContract {
     #[init]
     fn init(
@@ -25,7 +25,7 @@ pub trait FirstContract {
         let expected_token_identifier = self.get_contract_esdt_token_identifier();
 
         require!(
-            actual_token_identifier == expected_token_identifier,
+            *actual_token_identifier == expected_token_identifier,
             "Wrong esdt token"
         );
 
@@ -45,13 +45,13 @@ pub trait FirstContract {
         let expected_token_identifier = self.get_contract_esdt_token_identifier();
 
         require!(
-            actual_token_identifier == expected_token_identifier,
+            *actual_token_identifier == expected_token_identifier,
             "Wrong esdt token"
         );
 
         self.call_esdt_second_contract(
             &expected_token_identifier,
-            &(esdt_value / 2u32),
+            &(esdt_value.clone() / 2u32),
             &self.get_second_contract_address(),
             &ManagedBuffer::from(SECOND_CONTRACT_ACCEPT_ESDT_PAYMENT),
             &ManagedVec::new(),
@@ -65,7 +65,7 @@ pub trait FirstContract {
         let expected_token_identifier = self.get_contract_esdt_token_identifier();
 
         require!(
-            actual_token_identifier == expected_token_identifier,
+            *actual_token_identifier == expected_token_identifier,
             "Wrong esdt token"
         );
 
@@ -86,18 +86,17 @@ pub trait FirstContract {
         let expected_token_identifier = self.get_contract_esdt_token_identifier();
 
         require!(
-            actual_token_identifier == expected_token_identifier,
+            *actual_token_identifier == expected_token_identifier,
             "Wrong esdt token"
         );
 
-        let _ = self.send_raw().transfer_esdt_execute(
-            &second_contract_address,
-            &expected_token_identifier,
-            &esdt_value,
-            self.blockchain().get_gas_left(),
-            &ManagedBuffer::from(SECOND_CONTRACT_REJECT_ESDT_PAYMENT),
-            &ManagedArgBuffer::new(),
-        );
+        let gas_left = self.blockchain().get_gas_left();
+        self.tx()
+            .to(&second_contract_address)
+            .gas(gas_left)
+            .raw_call(SECOND_CONTRACT_REJECT_ESDT_PAYMENT)
+            .single_esdt(&expected_token_identifier, 0u64, &esdt_value)
+            .transfer_execute();
     }
 
     #[payable("*")]
@@ -108,18 +107,17 @@ pub trait FirstContract {
         let expected_token_identifier = self.get_contract_esdt_token_identifier();
 
         require!(
-            actual_token_identifier == expected_token_identifier,
+            *actual_token_identifier == expected_token_identifier,
             "Wrong esdt token"
         );
 
-        let _ = self.send_raw().transfer_esdt_execute(
-            &second_contract_address,
-            &expected_token_identifier,
-            &esdt_value,
-            self.blockchain().get_gas_left(),
-            &ManagedBuffer::from(SECOND_CONTRACT_ACCEPT_ESDT_PAYMENT),
-            &ManagedArgBuffer::new(),
-        );
+        let gas_left = self.blockchain().get_gas_left();
+        self.tx()
+            .to(&second_contract_address)
+            .gas(gas_left)
+            .raw_call(SECOND_CONTRACT_ACCEPT_ESDT_PAYMENT)
+            .single_esdt(&expected_token_identifier, 0u64, &esdt_value)
+            .transfer_execute();
     }
 
     fn call_esdt_second_contract(
@@ -134,16 +132,15 @@ pub trait FirstContract {
         arg_buffer.push_arg(esdt_token_identifier);
         arg_buffer.push_arg(amount);
         arg_buffer.push_arg(func_name);
-        for arg in args.into_iter() {
-            arg_buffer.push_arg_raw(arg);
+        for arg in args {
+            arg_buffer.push_arg_raw(arg.clone());
         }
 
-        self.send_raw().async_call_raw(
-            to,
-            &BigUint::zero(),
-            &ManagedBuffer::from(ESDT_TRANSFER_STRING),
-            &arg_buffer,
-        );
+        self.tx()
+            .to(to)
+            .raw_call(ESDT_TRANSFER_STRING)
+            .arguments_raw(arg_buffer)
+            .async_call_and_exit();
     }
 
     // storage

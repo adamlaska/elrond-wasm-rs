@@ -1,8 +1,8 @@
 #![no_std]
 
-elrond_wasm::imports!();
+multiversx_sc::imports!();
 
-#[elrond_wasm::contract]
+#[multiversx_sc::contract]
 pub trait SendTxRepeat {
     #[init]
     fn init(&self) {}
@@ -11,7 +11,7 @@ pub trait SendTxRepeat {
     #[endpoint]
     fn repeat(&self, to: ManagedAddress, amount: BigUint, times: usize) {
         for _ in 0..times {
-            self.send().direct_egld(&to, &amount);
+            self.tx().to(&to).egld(&amount).transfer();
         }
     }
 }
