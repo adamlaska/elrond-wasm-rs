@@ -2,9 +2,9 @@
 
 use benchmark_common::ExampleStruct;
 
-elrond_wasm::imports!();
+multiversx_sc::imports!();
 
-#[elrond_wasm::contract]
+#[multiversx_sc::contract]
 pub trait SetRepeat: benchmark_common::BenchmarkCommon {
     #[init]
     fn init(&self) {}

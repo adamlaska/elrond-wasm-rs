@@ -1,7 +1,7 @@
-elrond_wasm::imports!();
+multiversx_sc::imports!();
 
 /// Tests event logs.
-#[elrond_wasm::module]
+#[multiversx_sc::module]
 pub trait EventFeatures {
     #[event("event_a")]
     fn event_a(&self, data: u32);

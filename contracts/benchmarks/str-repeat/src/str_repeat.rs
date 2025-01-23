@@ -1,8 +1,8 @@
 #![no_std]
 
-elrond_wasm::imports!();
+multiversx_sc::imports!();
 
-#[elrond_wasm::contract]
+#[multiversx_sc::contract]
 pub trait StrRepeat {
     #[init]
     fn init(&self) {}
@@ -25,4 +25,15 @@ pub trait StrRepeat {
     #[view(getByteArray)]
     #[storage_mapper("byteArray")]
     fn byte_array(&self) -> SingleValueMapper<Vec<u8>>;
+
+    #[view]
+    #[label("mb-builder")]
+    fn mb_builder_benchmark(&self, payload: u32, num_repeats: usize) -> ManagedBuffer {
+        let mut builder = ManagedBufferBuilder::default();
+        let payload_bytes = payload.to_be_bytes();
+        for _ in 0..num_repeats {
+            builder.append_bytes(&payload_bytes);
+        }
+        builder.into_managed_buffer()
+    }
 }

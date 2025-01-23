@@ -1,9 +1,9 @@
-elrond_wasm::imports!();
+multiversx_sc::imports!();
 
 use crate::types::*;
 
 /// Example of comparing structures in a contract.
-#[elrond_wasm::module]
+#[multiversx_sc::module]
 pub trait StructEquals {
     #[endpoint]
     fn managed_struct_eq(

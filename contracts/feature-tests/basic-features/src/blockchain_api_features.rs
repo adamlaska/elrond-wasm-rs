@@ -1,7 +1,7 @@
-elrond_wasm::imports!();
+multiversx_sc::imports!();
 
 /// Contains all events that can be emitted by the contract.
-#[elrond_wasm::module]
+#[multiversx_sc::module]
 pub trait BlockchainApiFeatures {
     #[endpoint]
     fn get_caller(&self) -> ManagedAddress {
@@ -29,7 +29,7 @@ pub trait BlockchainApiFeatures {
     }
 
     #[endpoint]
-    fn get_tx_hash_legacy(&self) -> ManagedByteArray<Self::Api, 32> {
+    fn get_tx_hash(&self) -> ManagedByteArray<Self::Api, 32> {
         self.blockchain().get_tx_hash()
     }
 
@@ -41,5 +41,15 @@ pub trait BlockchainApiFeatures {
     #[endpoint]
     fn get_cumulated_validator_rewards(&self) -> BigUint {
         self.blockchain().get_cumulated_validator_rewards()
+    }
+
+    #[endpoint]
+    fn get_code_metadata(&self, address: ManagedAddress) -> CodeMetadata {
+        self.blockchain().get_code_metadata(&address)
+    }
+
+    #[endpoint]
+    fn is_builtin_function(&self, function_name: ManagedBuffer) -> bool {
+        self.blockchain().is_builtin_function(&function_name)
     }
 }

@@ -1,7 +1,6 @@
 #![no_std]
 
-elrond_wasm::imports!();
-elrond_wasm::derive_imports!();
+use multiversx_sc::imports::*;
 
 mod contract_data;
 
@@ -9,7 +8,7 @@ use contract_data::{Schedule, UnlockType};
 
 const PERCENTAGE_TOTAL: u64 = 100;
 
-#[elrond_wasm::contract]
+#[multiversx_sc::contract]
 pub trait TokenRelease {
     // The SC initializes with the setup period started. After the initial setup, the SC offers a function that ends the setup period.
     // There is no function to start the setup period back on, so once the setup period is ended, it cannot be changed.
@@ -20,7 +19,7 @@ pub trait TokenRelease {
             "Invalid token provided"
         );
         self.token_identifier().set(&token_identifier);
-        self.setup_period_status().set(&true);
+        self.setup_period_status().set(true);
     }
 
     // endpoints
@@ -212,7 +211,7 @@ pub trait TokenRelease {
         let total_mint_tokens = self.token_total_supply().get();
         self.mint_all_tokens(&token_identifier, &total_mint_tokens);
         let activation_timestamp = self.blockchain().get_block_timestamp();
-        self.activation_timestamp().set(&activation_timestamp);
+        self.activation_timestamp().set(activation_timestamp);
         self.setup_period_status().set(false);
     }
 
@@ -313,8 +312,10 @@ pub trait TokenRelease {
         address: &ManagedAddress,
         amount: &BigUint,
     ) {
-        self.send()
-            .direct_esdt(address, token_identifier, 0, amount);
+        self.tx()
+            .to(address)
+            .single_esdt(token_identifier, 0, amount)
+            .transfer();
     }
 
     fn mint_all_tokens(&self, token_identifier: &TokenIdentifier, amount: &BigUint) {

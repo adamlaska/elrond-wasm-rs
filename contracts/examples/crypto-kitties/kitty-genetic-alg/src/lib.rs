@@ -1,11 +1,9 @@
 #![no_std]
 
-elrond_wasm::imports!();
-
-use kitty::{kitty_genes::*, Kitty};
+use kitty::{Kitty, KittyGenes};
 use random::Random;
 
-#[elrond_wasm::contract]
+#[multiversx_sc::contract]
 pub trait KittyGeneticAlg {
     #[init]
     fn init(&self) {}

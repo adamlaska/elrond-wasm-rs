@@ -1,11 +1,12 @@
 #![no_std]
 
-elrond_wasm::imports!();
+use multiversx_sc::imports::*;
 
 pub mod auction;
 use auction::*;
+pub mod kitty_ownership_proxy;
 
-#[elrond_wasm::contract]
+#[multiversx_sc::contract]
 pub trait KittyAuction {
     #[init]
     fn init(
@@ -45,11 +46,12 @@ pub trait KittyAuction {
             "Kitty Ownership contract address not set!"
         );
 
-        self.kitty_ownership_proxy(kitty_ownership_contract_address)
+        self.tx()
+            .to(&kitty_ownership_contract_address)
+            .typed(kitty_ownership_proxy::KittyOwnershipProxy)
             .create_gen_zero_kitty()
-            .async_call()
-            .with_callback(self.callbacks().create_gen_zero_kitty_callback())
-            .call_and_exit()
+            .callback(self.callbacks().create_gen_zero_kitty_callback())
+            .async_call_and_exit();
     }
 
     // views
@@ -150,7 +152,7 @@ pub trait KittyAuction {
     #[payable("EGLD")]
     #[endpoint]
     fn bid(&self, kitty_id: u32) {
-        let payment = self.call_value().egld_value();
+        let payment = self.call_value().egld();
 
         require!(
             self.is_up_for_auction(kitty_id),
@@ -169,26 +171,28 @@ pub trait KittyAuction {
             "auction ended already!"
         );
         require!(
-            payment >= auction.starting_price,
+            *payment >= auction.starting_price,
             "bid amount must be higher than or equal to starting price!"
         );
         require!(
-            payment > auction.current_bid,
+            *payment > auction.current_bid,
             "bid amount must be higher than current winning bid!"
         );
         require!(
-            payment <= auction.ending_price,
+            *payment <= auction.ending_price,
             "bid amount must be less than or equal to ending price!"
         );
 
         // refund losing bid
         if !auction.current_winner.is_zero() {
-            self.send()
-                .direct_egld(&auction.current_winner, &auction.current_bid);
+            self.tx()
+                .to(&auction.current_winner)
+                .egld(&auction.current_bid)
+                .transfer();
         }
 
         // update auction bid and winner
-        auction.current_bid = payment;
+        auction.current_bid = payment.clone();
         auction.current_winner = caller;
         self.auction(kitty_id).set(auction);
     }
@@ -238,10 +242,11 @@ pub trait KittyAuction {
         let kitty_ownership_contract_address =
             self.get_kitty_ownership_contract_address_or_default();
         if !kitty_ownership_contract_address.is_zero() {
-            self.kitty_ownership_proxy(kitty_ownership_contract_address)
-                .allow_auctioning(caller.clone(), kitty_id)
-                .async_call()
-                .with_callback(self.callbacks().allow_auctioning_callback(
+            self.tx()
+                .to(&kitty_ownership_contract_address)
+                .typed(kitty_ownership_proxy::KittyOwnershipProxy)
+                .allow_auctioning(&caller, kitty_id)
+                .callback(self.callbacks().allow_auctioning_callback(
                     auction_type,
                     kitty_id,
                     starting_price,
@@ -249,7 +254,7 @@ pub trait KittyAuction {
                     deadline,
                     caller,
                 ))
-                .call_and_exit();
+                .async_call_and_exit();
         }
     }
 
@@ -274,11 +279,12 @@ pub trait KittyAuction {
         let kitty_ownership_contract_address =
             self.get_kitty_ownership_contract_address_or_default();
         if !kitty_ownership_contract_address.is_zero() {
-            self.kitty_ownership_proxy(kitty_ownership_contract_address)
+            self.tx()
+                .to(&kitty_ownership_contract_address)
+                .typed(kitty_ownership_proxy::KittyOwnershipProxy)
                 .transfer(address, kitty_id)
-                .async_call()
-                .with_callback(self.callbacks().transfer_callback(kitty_id))
-                .call_and_exit()
+                .callback(self.callbacks().transfer_callback(kitty_id))
+                .async_call_and_exit();
         }
     }
 
@@ -291,12 +297,13 @@ pub trait KittyAuction {
         let kitty_ownership_contract_address =
             self.get_kitty_ownership_contract_address_or_default();
         if !kitty_ownership_contract_address.is_zero() {
-            self.kitty_ownership_proxy(kitty_ownership_contract_address)
+            self.tx()
+                .to(&kitty_ownership_contract_address)
+                .typed(kitty_ownership_proxy::KittyOwnershipProxy)
                 .approve_siring_and_return_kitty(approved_address, kitty_owner, kitty_id)
                 // not a mistake, same callback for transfer and approveSiringAndReturnKitty
-                .async_call()
-                .with_callback(self.callbacks().transfer_callback(kitty_id))
-                .call_and_exit()
+                .callback(self.callbacks().transfer_callback(kitty_id))
+                .async_call_and_exit();
         }
     }
 
@@ -356,8 +363,10 @@ pub trait KittyAuction {
                 if auction.kitty_owner != self.blockchain().get_sc_address()
                     && !auction.current_winner.is_zero()
                 {
-                    self.send()
-                        .direct_egld(&auction.kitty_owner, &auction.current_bid);
+                    self.tx()
+                        .to(&auction.kitty_owner)
+                        .egld(&auction.current_bid)
+                        .transfer();
                 }
             },
             ManagedAsyncCallResult::Err(_) => {
@@ -402,11 +411,6 @@ pub trait KittyAuction {
             },
         }
     }
-
-    // proxy
-
-    #[proxy]
-    fn kitty_ownership_proxy(&self, to: ManagedAddress) -> kitty_ownership::Proxy<Self::Api>;
 
     // storage
 

@@ -14,15 +14,18 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
-        uses: actions/checkout@v2
-      - name: Install erdpy
+        uses: actions/checkout@v3
+
+      - name: Install rust
+        uses: actions-rust-lang/setup-rust-toolchain@v1
+        with:
+          toolchain: stable
+          target: wasm32-unknown-unknown
+
+      - name: Install prerequisites
         run: |
-          source .github/workflows/env
-          pip3 install erdpy
-      - name: Install wasm-opt
-        run: |
-          erdpy deps install nodejs
-          erdpy deps install wasm-opt
+          cargo install multiversx-sc-meta
+
       - name: Build project example outputs
         run: |
           ./zip-example-wasm.sh
@@ -34,4 +37,3 @@ jobs:
           file: ./examples-wasm.zip
           asset_name: examples-wasm.zip
           overwrite: true
-          body: "This is my release text"

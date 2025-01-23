@@ -2,23 +2,20 @@
 name = "proxy-pause"
 version = "0.0.0"
 authors = [ "you",]
-edition = "2018"
+edition = "2021"
 publish = false
 
 [lib]
 path = "src/proxy_pause.rs"
 
-[dependencies.elrond-wasm]
-version = "0.34.1"
-path = "../../../elrond-wasm"
+[dependencies.multiversx-sc]
+version = "0.56.0"
+path = "../../../framework/base"
 
-[dependencies.elrond-wasm-modules]
-version = "0.34.1"
-path = "../../../elrond-wasm-modules"
+[dev-dependencies.multiversx-sc-scenario]
+version = "0.56.0"
+path = "../../../framework/scenario"
 
-[dev-dependencies.elrond-wasm-debug]
-version = "0.34.1"
-path = "../../../elrond-wasm-debug"
+[dev-dependencies.check-pause]
+path = "../check-pause"
 
-[dev-dependencies.use-module]
-path = "../../feature-tests/use-module"

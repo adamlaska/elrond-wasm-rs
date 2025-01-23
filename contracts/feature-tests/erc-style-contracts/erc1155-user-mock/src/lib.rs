@@ -1,8 +1,8 @@
 #![no_std]
 
-elrond_wasm::imports!();
+multiversx_sc::imports!();
 
-#[elrond_wasm::contract]
+#[multiversx_sc::contract]
 pub trait Erc1155UserMock {
     #[init]
     fn init(&self) {}
@@ -23,8 +23,8 @@ pub trait Erc1155UserMock {
         &self,
         _operator: ManagedAddress,
         _from: ManagedAddress,
-        _type_ids: Vec<BigUint>,
-        _values: Vec<BigUint>,
+        _type_ids: ManagedVec<BigUint>,
+        _values: ManagedVec<BigUint>,
         _data: ManagedBuffer,
     ) {
     }

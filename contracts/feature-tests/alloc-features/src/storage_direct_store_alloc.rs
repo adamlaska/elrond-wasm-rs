@@ -1,9 +1,9 @@
-elrond_wasm::imports!();
+multiversx_sc::imports!();
 
 use crate::types::*;
 
 /// Storage tests: direct store from the heap to storage.
-#[elrond_wasm::module]
+#[multiversx_sc::module]
 pub trait StorageStoreFeatures {
     #[endpoint]
     #[storage_set("vec_u8")]

@@ -1,35 +1,44 @@
 [package]
 name = "composability-tests"
 version = "0.0.0"
-authors = ["Andrei Marinica <andrei.marinica@elrond.com>"]
-edition = "2018"
+authors = ["Andrei Marinica <andrei.marinica@multiversx.com>"]
+edition = "2021"
 publish = false
 
-[dependencies.forwarder]
+[dev-dependencies.builtin-func-features]
+path = "builtin-func-features"
+
+[dev-dependencies.forwarder]
 path = "forwarder"
 
-[dependencies.forwarder-raw]
+[dev-dependencies.forwarder-legacy]
+path = "forwarder-legacy"
+
+[dev-dependencies.forwarder-queue]
+path = "forwarder-queue"
+
+[dev-dependencies.forwarder-raw]
 path = "forwarder-raw"
 
-[dependencies.promises-features]
+[dev-dependencies.promises-features]
 path = "promises-features"
 
-[dependencies.proxy-test-first]
+[dev-dependencies.proxy-test-first]
 path = "proxy-test-first"
 
-[dependencies.proxy-test-second]
+[dev-dependencies.proxy-test-second]
 path = "proxy-test-second"
 
-[dependencies.recursive-caller]
+[dev-dependencies.recursive-caller]
 path = "recursive-caller"
 
-[dependencies.vault]
+[dev-dependencies.vault]
 path = "vault"
 
-[dependencies.elrond-wasm]
-version = "0.34.1"
-path = "../../../elrond-wasm"
+[dependencies.multiversx-sc]
+version = "0.56.0"
+path = "../../../framework/base"
 
-[dev-dependencies.elrond-wasm-debug]
-version = "0.34.1"
-path = "../../../elrond-wasm-debug"
+[dev-dependencies.multiversx-sc-scenario]
+version = "0.56.0"
+path = "../../../framework/scenario"

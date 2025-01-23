@@ -4,24 +4,26 @@ pub mod action;
 pub mod multisig_events;
 pub mod multisig_perform;
 pub mod multisig_propose;
+pub mod multisig_proxy;
 pub mod multisig_state;
+pub mod multisig_view_proxy;
 pub mod user_role;
 
 use action::ActionFullInfo;
 use user_role::UserRole;
 
-elrond_wasm::imports!();
+use multiversx_sc::imports::*;
 
 /// Multi-signature smart contract implementation.
 /// Acts like a wallet that needs multiple signers for any action performed.
 /// See the readme file for more detailed documentation.
-#[elrond_wasm::contract]
+#[multiversx_sc::contract]
 pub trait Multisig:
     multisig_state::MultisigStateModule
     + multisig_propose::MultisigProposeModule
     + multisig_perform::MultisigPerformModule
     + multisig_events::MultisigEventsModule
-    + elrond_wasm_modules::dns::DnsModule
+    + multiversx_sc_modules::dns::DnsModule
 {
     #[init]
     fn init(&self, quorum: usize, board: MultiValueEncoded<ManagedAddress>) {
@@ -41,8 +43,13 @@ pub trait Multisig:
         self.quorum().set(quorum);
     }
 
+    #[upgrade]
+    fn upgrade(&self, quorum: usize, board: MultiValueEncoded<ManagedAddress>) {
+        self.init(quorum, board)
+    }
+
     /// Allows the contract to receive funds even if it is marked as unpayable in the protocol.
-    #[payable("*")]
+    #[payable]
     #[endpoint]
     fn deposit(&self) {}
 
@@ -51,6 +58,7 @@ pub trait Multisig:
     /// - the action id
     /// - the serialized action data
     /// - (number of signers followed by) list of signer addresses.
+    #[label("multisig-external-view")]
     #[view(getPendingActionFullInfo)]
     fn get_pending_action_full_info(&self) -> MultiValueEncoded<ActionFullInfo<Self::Api>> {
         let mut result = MultiValueEncoded::new();
@@ -85,6 +93,7 @@ pub trait Multisig:
     /// `0` = no rights,
     /// `1` = can propose, but not sign,
     /// `2` = can propose and sign.
+    #[label("multisig-external-view")]
     #[view(userRole)]
     fn user_role(&self, user: ManagedAddress) -> UserRole {
         let user_id = self.user_mapper().get_user_id(&user);
@@ -96,12 +105,14 @@ pub trait Multisig:
     }
 
     /// Lists all users that can sign actions.
+    #[label("multisig-external-view")]
     #[view(getAllBoardMembers)]
     fn get_all_board_members(&self) -> MultiValueEncoded<ManagedAddress> {
         self.get_all_users_with_role(UserRole::BoardMember)
     }
 
     /// Lists all proposers that are not board members.
+    #[label("multisig-external-view")]
     #[view(getAllProposers)]
     fn get_all_proposers(&self) -> MultiValueEncoded<ManagedAddress> {
         self.get_all_users_with_role(UserRole::Proposer)

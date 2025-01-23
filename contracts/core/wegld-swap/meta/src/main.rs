@@ -1,3 +1,3 @@
 fn main() {
-    elrond_wasm_debug::meta::perform::<elrond_sc_wegld_swap::AbiProvider>();
+    multiversx_sc_meta_lib::cli_main::<multiversx_wegld_swap_sc::AbiProvider>();
 }
