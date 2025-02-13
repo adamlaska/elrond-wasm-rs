@@ -1,17 +1,17 @@
 [package]
 name = "esdt-transfer-with-fee"
 version = "0.0.0"
-authors = ["Alin Cruceat <alin.cruceat@elrond.com>"]
-edition = "2018"
+authors = ["Alin Cruceat <alin.cruceat@multiversx.com>"]
+edition = "2021"
 publish = false
 
 [lib]
 path = "src/esdt_transfer_with_fee.rs"
 
-[dependencies.elrond-wasm]
-version = "0.34.1"
-path = "../../../elrond-wasm"
+[dependencies.multiversx-sc]
+version = "0.56.1"
+path = "../../../framework/base"
 
-[dev-dependencies.elrond-wasm-debug]
-version = "0.34.1"
-path = "../../../elrond-wasm-debug"
+[dev-dependencies.multiversx-sc-scenario]
+version = "0.56.1"
+path = "../../../framework/scenario"

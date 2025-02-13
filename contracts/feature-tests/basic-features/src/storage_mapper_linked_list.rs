@@ -1,7 +1,7 @@
-elrond_wasm::imports!();
+multiversx_sc::imports!();
 
 /// Storage mapper test.
-#[elrond_wasm::module]
+#[multiversx_sc::module]
 pub trait LinkedListMapperFeatures {
     #[view(getListMapper)]
     #[storage_mapper("list_mapper")]

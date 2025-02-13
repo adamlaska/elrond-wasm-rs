@@ -3,8 +3,8 @@
 mod fee;
 use fee::*;
 
-elrond_wasm::imports!();
-#[elrond_wasm::contract]
+use multiversx_sc::imports::*;
+#[multiversx_sc::contract]
 pub trait EsdtTransferWithFee {
     #[init]
     fn init(&self) {}
@@ -40,15 +40,14 @@ pub trait EsdtTransferWithFee {
         }
         self.paid_fees().clear();
 
-        let caller = self.blockchain().get_caller();
-        self.send().direct_multi(&caller, &fees);
+        self.tx().to(ToCaller).payment(fees).transfer();
     }
 
-    #[payable("*")]
+    #[payable]
     #[endpoint]
     fn transfer(&self, address: ManagedAddress) {
         require!(
-            self.call_value().egld_value() == 0,
+            *self.call_value().egld_direct_non_strict() == 0,
             "EGLD transfers not allowed"
         );
         let payments = self.call_value().all_esdt_transfers();
@@ -72,17 +71,17 @@ pub trait EsdtTransferWithFee {
                         "Mismatching payment for covering fees"
                     );
                     let _ = self.get_payment_after_fees(fee_type, &next_payment);
-                    new_payments.push(payment);
+                    new_payments.push(payment.clone());
                 },
                 Fee::Percentage(_) => {
                     new_payments.push(self.get_payment_after_fees(fee_type, &payment));
                 },
                 Fee::Unset => {
-                    new_payments.push(payment);
+                    new_payments.push(payment.clone());
                 },
             }
         }
-        self.send().direct_multi(&address, &new_payments);
+        self.tx().to(&address).payment(new_payments).transfer();
     }
 
     fn get_payment_after_fees(

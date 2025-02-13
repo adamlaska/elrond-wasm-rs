@@ -1,7 +1,8 @@
-elrond_wasm::derive_imports!();
+multiversx_sc::derive_imports!();
 
-/// Copied from elrond-wasm serialization tests.
-#[derive(NestedEncode, NestedDecode, TopEncode, TopDecode, TypeAbi)]
+/// Copied from multiversx-sc serialization tests.
+#[type_abi]
+#[derive(NestedEncode, NestedDecode, TopEncode, TopDecode)]
 pub enum ExampleEnumWithFields {
     Unit,
     Newtype(u32),

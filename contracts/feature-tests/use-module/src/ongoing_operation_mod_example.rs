@@ -1,11 +1,11 @@
-elrond_wasm::imports!();
+multiversx_sc::imports!();
 
-use elrond_wasm_modules::ongoing_operation::{
+use multiversx_sc_modules::ongoing_operation::{
     self, CONTINUE_OP, DEFAULT_MIN_GAS_TO_SAVE_PROGRESS, STOP_OP,
 };
 
 /// Example of a module using the ongoing operation pattern
-#[elrond_wasm::module]
+#[multiversx_sc::module]
 pub trait OngoingOperationModExample: ongoing_operation::OngoingOperationModule {
     #[endpoint(countTo100)]
     fn count_to_100(&self) -> OperationCompletionStatus {

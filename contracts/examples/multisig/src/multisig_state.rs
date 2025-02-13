@@ -1,9 +1,9 @@
 use crate::{action::Action, user_role::UserRole};
 
-elrond_wasm::imports!();
+use multiversx_sc::imports::*;
 
 /// Contains all events that can be emitted by the contract.
-#[elrond_wasm::module]
+#[multiversx_sc::module]
 pub trait MultisigStateModule {
     /// Minimum number of signatures needed to perform any action.
     #[view(getQuorum)]
@@ -37,6 +37,7 @@ pub trait MultisigStateModule {
 
     fn add_multiple_board_members(&self, new_board_members: ManagedVec<ManagedAddress>) -> usize {
         let mut duplicates = false;
+        let new_board_members_len = new_board_members.len();
         self.user_mapper().get_or_create_users(
             new_board_members.into_iter(),
             |user_id, new_user| {
@@ -49,7 +50,7 @@ pub trait MultisigStateModule {
         require!(!duplicates, "duplicate board member");
 
         let num_board_members_mapper = self.num_board_members();
-        let new_num_board_members = num_board_members_mapper.get() + new_board_members.len();
+        let new_num_board_members = num_board_members_mapper.get() + new_board_members_len;
         num_board_members_mapper.set(new_num_board_members);
 
         new_num_board_members
@@ -66,6 +67,7 @@ pub trait MultisigStateModule {
     }
 
     /// Serialized action data of an action with index.
+    #[label("multisig-external-view")]
     #[view(getActionData)]
     fn get_action_data(&self, action_id: usize) -> Action<Self::Api> {
         self.action_mapper().get(action_id)
@@ -77,6 +79,7 @@ pub trait MultisigStateModule {
     /// Gets addresses of all users who signed an action.
     /// Does not check if those users are still board members or not,
     /// so the result may contain invalid signers.
+    #[label("multisig-external-view")]
     #[view(getActionSigners)]
     fn get_action_signers(&self, action_id: usize) -> ManagedVec<ManagedAddress> {
         let signer_ids = self.action_signer_ids(action_id);
@@ -89,6 +92,7 @@ pub trait MultisigStateModule {
 
     /// Gets addresses of all users who signed an action and are still board members.
     /// All these signatures are currently valid.
+    #[label("multisig-external-view")]
     #[view(getActionSignerCount)]
     fn get_action_signer_count(&self, action_id: usize) -> usize {
         self.action_signer_ids(action_id).len()
@@ -99,6 +103,7 @@ pub trait MultisigStateModule {
     /// therefore the contract needs to re-check every time when actions are performed.
     /// This function is used to validate the signers before performing an action.
     /// It also makes it easy to check before performing an action.
+    #[label("multisig-external-view")]
     #[view(getActionValidSignerCount)]
     fn get_action_valid_signer_count(&self, action_id: usize) -> usize {
         let signer_ids = self.action_signer_ids(action_id);

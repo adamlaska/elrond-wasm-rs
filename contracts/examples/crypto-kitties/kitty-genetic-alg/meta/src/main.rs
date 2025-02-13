@@ -1,3 +1,3 @@
 fn main() {
-    elrond_wasm_debug::meta::perform::<kitty_genetic_alg::AbiProvider>();
+    multiversx_sc_meta_lib::cli_main::<kitty_genetic_alg::AbiProvider>();
 }

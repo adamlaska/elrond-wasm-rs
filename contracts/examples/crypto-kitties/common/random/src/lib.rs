@@ -1,6 +1,6 @@
 #![no_std]
 
-use elrond_wasm::{api::ManagedTypeApi, types::ManagedByteArray};
+use multiversx_sc::{api::ManagedTypeApi, types::ManagedByteArray};
 
 const SEED_SIZE: usize = 48;
 const SALT_SIZE: usize = 32;
@@ -24,6 +24,7 @@ pub trait Randomizeable {
 
 impl Random {
     /// block random seed + salt creates a stronger randomness source
+    #[allow(static_mut_refs)]
     pub fn new<M: ManagedTypeApi>(
         seed: ManagedByteArray<M, SEED_SIZE>,
         salt: ManagedByteArray<M, SALT_SIZE>,

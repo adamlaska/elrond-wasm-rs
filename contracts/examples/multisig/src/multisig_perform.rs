@@ -3,7 +3,7 @@ use crate::{
     user_role::UserRole,
 };
 
-elrond_wasm::imports!();
+use multiversx_sc::imports::*;
 
 /// Gas required to finish transaction after transfer-execute.
 const PERFORM_ACTION_FINISH_GAS: u64 = 300_000;
@@ -13,7 +13,7 @@ fn usize_add_isize(value: &mut usize, delta: isize) {
 }
 
 /// Contains all events that can be emitted by the contract.
-#[elrond_wasm::module]
+#[multiversx_sc::module]
 pub trait MultisigPerformModule:
     crate::multisig_state::MultisigStateModule + crate::multisig_events::MultisigEventsModule
 {
@@ -32,10 +32,20 @@ pub trait MultisigPerformModule:
     /// - convert between board member and proposer
     /// Will keep the board size and proposer count in sync.
     fn change_user_role(&self, action_id: usize, user_address: ManagedAddress, new_role: UserRole) {
-        let user_id = self.user_mapper().get_or_create_user(&user_address);
+        let user_id = if new_role == UserRole::None {
+            // avoid creating a new user just to delete it
+            let user_id = self.user_mapper().get_user_id(&user_address);
+            if user_id == 0 {
+                return;
+            }
+            user_id
+        } else {
+            self.user_mapper().get_or_create_user(&user_address)
+        };
+
         let user_id_to_role_mapper = self.user_id_to_role(user_id);
         let old_role = user_id_to_role_mapper.get();
-        user_id_to_role_mapper.set(&new_role);
+        user_id_to_role_mapper.set(new_role);
 
         self.perform_change_user_event(action_id, &user_address, old_role, new_role);
 
@@ -157,16 +167,13 @@ pub trait MultisigPerformModule:
                     &call_data.endpoint_name,
                     call_data.arguments.as_multi(),
                 );
-                let result = self.send_raw().direct_egld_execute(
-                    &call_data.to,
-                    &call_data.egld_amount,
-                    gas,
-                    &call_data.endpoint_name,
-                    &call_data.arguments.into(),
-                );
-                if let Result::Err(e) = result {
-                    sc_panic!(e);
-                }
+                self.tx()
+                    .to(call_data.to)
+                    .egld(call_data.egld_amount)
+                    .gas(gas)
+                    .raw_call(call_data.endpoint_name)
+                    .arguments_raw(call_data.arguments.into())
+                    .transfer_execute();
                 OptionalValue::None
             },
             Action::SendAsyncCall(call_data) => {
@@ -179,12 +186,14 @@ pub trait MultisigPerformModule:
                     &call_data.endpoint_name,
                     call_data.arguments.as_multi(),
                 );
-                self.send()
-                    .contract_call::<()>(call_data.to, call_data.endpoint_name)
-                    .with_egld_transfer(call_data.egld_amount)
-                    .with_arguments_raw(call_data.arguments.into())
-                    .async_call()
-                    .call_and_exit()
+
+                self.tx()
+                    .to(&call_data.to)
+                    .raw_call(call_data.endpoint_name)
+                    .arguments_raw(call_data.arguments.into())
+                    .egld(call_data.egld_amount)
+                    .callback(self.callbacks().perform_async_call_callback())
+                    .async_call_and_exit();
             },
             Action::SCDeployFromSource {
                 amount,
@@ -201,13 +210,16 @@ pub trait MultisigPerformModule:
                     gas_left,
                     arguments.as_multi(),
                 );
-                let (new_address, _) = self.send_raw().deploy_from_source_contract(
-                    gas_left,
-                    &amount,
-                    &source,
-                    code_metadata,
-                    &arguments.into(),
-                );
+                let new_address = self
+                    .tx()
+                    .egld(amount)
+                    .gas(gas_left)
+                    .raw_deploy()
+                    .from_source(source)
+                    .code_metadata(code_metadata)
+                    .arguments_raw(arguments.into())
+                    .returns(ReturnsNewManagedAddress)
+                    .sync_call();
                 OptionalValue::Some(new_address)
             },
             Action::SCUpgradeFromSource {
@@ -227,16 +239,39 @@ pub trait MultisigPerformModule:
                     gas_left,
                     arguments.as_multi(),
                 );
-                self.send_raw().upgrade_from_source_contract(
-                    &sc_address,
-                    gas_left,
-                    &amount,
-                    &source,
-                    code_metadata,
-                    &arguments.into(),
-                );
+                self.tx()
+                    .to(sc_address)
+                    .egld(amount)
+                    .gas(gas_left)
+                    .raw_upgrade()
+                    .from_source(source)
+                    .code_metadata(code_metadata)
+                    .arguments_raw(arguments.into())
+                    .upgrade_async_call_and_exit();
                 OptionalValue::None
             },
         }
     }
+
+    /// Callback only performs logging.
+    #[callback]
+    fn perform_async_call_callback(
+        &self,
+        #[call_result] call_result: ManagedAsyncCallResult<MultiValueEncoded<ManagedBuffer>>,
+    ) {
+        match call_result {
+            ManagedAsyncCallResult::Ok(results) => {
+                self.async_call_success(results);
+            },
+            ManagedAsyncCallResult::Err(err) => {
+                self.async_call_error(err.err_code, err.err_msg);
+            },
+        }
+    }
+
+    #[event("asyncCallSuccess")]
+    fn async_call_success(&self, #[indexed] results: MultiValueEncoded<ManagedBuffer>);
+
+    #[event("asyncCallError")]
+    fn async_call_error(&self, #[indexed] err_code: u32, #[indexed] err_message: ManagedBuffer);
 }

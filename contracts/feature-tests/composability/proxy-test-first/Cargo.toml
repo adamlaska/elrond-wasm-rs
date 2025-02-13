@@ -1,29 +1,21 @@
 [package]
 name = "proxy-test-first"
 version = "0.0.0"
-authors = ["Andrei Marinica <andrei.marinica@elrond.com>"]
-edition = "2018"
+authors = ["Andrei Marinica <andrei.marinica@multiversx.com>"]
+edition = "2021"
 publish = false
 
 [lib]
 path = "src/proxy-test-first.rs"
 
-[features]
-ei-unmanaged = ["elrond-wasm/ei-unmanaged"]
-
 [dependencies]
-hex-literal = "0.3.1"
+hex-literal = "0.4.1"
 
-[dependencies.elrond-wasm]
-version = "0.34.1"
-path = "../../../../elrond-wasm"
+[dependencies.multiversx-sc]
+version = "0.56.1"
+path = "../../../../framework/base"
 features = ["alloc"]
 
-[dependencies.elrond-wasm-node]
-version = "0.34.1"
-path = "../../../../elrond-wasm-node"
-optional = true
-
-[dev-dependencies.elrond-wasm-debug]
-version = "0.34.1"
-path = "../../../../elrond-wasm-debug"
+[dev-dependencies.multiversx-sc-scenario]
+version = "0.56.1"
+path = "../../../../framework/scenario"

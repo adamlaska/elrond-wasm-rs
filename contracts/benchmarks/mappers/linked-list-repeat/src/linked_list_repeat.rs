@@ -1,10 +1,11 @@
 #![no_std]
 
-elrond_wasm::imports!();
+multiversx_sc::imports!();
 
 use benchmark_common::ExampleStruct;
+pub mod linked_list_repeat_proxy;
 
-#[elrond_wasm::contract]
+#[multiversx_sc::contract]
 pub trait LinkedListRepeat: benchmark_common::BenchmarkCommon {
     #[init]
     fn init(&self) {}
