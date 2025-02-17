@@ -1,0 +1,44 @@
+{
+    "steps": [
+        {
+            "step": "setState",
+            "accounts": {
+                "sc:mcf": {
+                    "code": "mxsc:../output/multi-contract-features.mxsc.json"
+                },
+                "sc:mcf-example-feature": {
+                    "code": "mxsc:../output/multi-contract-example-feature.mxsc.json"
+                },
+                "address:owner": {}
+            }
+        },
+        {
+            "step": "scQuery",
+            "id": "example_feature_message",
+            "tx": {
+                "to": "sc:mcf-example-feature",
+                "function": "example_feature_message",
+                "arguments": []
+            },
+            "expect": {
+                "out": [
+                    "str:example-feature on"
+                ]
+            }
+        },
+        {
+            "step": "scQuery",
+            "id": "example_feature_message",
+            "tx": {
+                "to": "sc:mcf",
+                "function": "example_feature_message",
+                "arguments": []
+            },
+            "expect": {
+                "out": [
+                    "str:example-feature off"
+                ]
+            }
+        }
+    ]
+}

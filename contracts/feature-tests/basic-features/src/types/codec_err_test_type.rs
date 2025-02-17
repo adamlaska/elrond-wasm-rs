@@ -1,14 +1,15 @@
-use elrond_wasm::{
-    derive::TypeAbi,
-    elrond_codec::{
+use multiversx_sc::{
+    codec::{
         DecodeError, DecodeErrorHandler, EncodeError, EncodeErrorHandler, NestedDecode,
         NestedDecodeInput, NestedEncode, NestedEncodeOutput, TopDecode, TopDecodeInput, TopEncode,
         TopEncodeOutput,
     },
+    derive::type_abi,
 };
 
 /// Helper type to explore encode/decode errors.
-#[derive(TypeAbi)]
+#[type_abi]
+#[derive(Clone, Copy)]
 pub struct CodecErrorTestType;
 
 impl TopEncode for CodecErrorTestType {

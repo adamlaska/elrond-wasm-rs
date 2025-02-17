@@ -1,22 +1,22 @@
 [package]
 name = "bonding-curve-contract"
 version = "0.0.0"
-authors = ["Alin Cruceat <alin.cruceat@elrond.com>"]
-edition = "2018"
+authors = ["Alin Cruceat <alin.cruceat@multiversx.com>"]
+edition = "2021"
 publish = false
 
 [lib]
 path = "src/bonding_curve_contract.rs"
 
-[dependencies.elrond-wasm]
-version = "0.34.1"
-path = "../../../elrond-wasm"
+[dependencies.multiversx-sc]
+version = "0.56.1"
+path = "../../../framework/base"
 
-[dependencies.elrond-wasm-modules]
-version = "0.34.1"
-path = "../../../elrond-wasm-modules"
+[dependencies.multiversx-sc-modules]
+version = "0.56.1"
+path = "../../../contracts/modules"
 
-[dev-dependencies.elrond-wasm-debug]
-version = "0.34.1"
-path = "../../../elrond-wasm-debug"
+[dev-dependencies.multiversx-sc-scenario]
+version = "0.56.1"
+path = "../../../framework/scenario"
 

@@ -1,6 +1,6 @@
-elrond_wasm::imports!();
+multiversx_sc::imports!();
 
-#[elrond_wasm::module]
+#[multiversx_sc::module]
 pub trait BigIntMethods {
     #[endpoint]
     fn sqrt_big_uint(&self, a: BigUint) -> BigUint {
@@ -14,12 +14,12 @@ pub trait BigIntMethods {
 
     #[endpoint]
     fn log2_big_uint(&self, a: BigUint) -> u32 {
-        a.log2()
+        a.log2_floor().unwrap_or_default()
     }
 
     #[endpoint]
     fn log2_big_uint_ref(&self, a: &BigUint) -> u32 {
-        a.log2()
+        a.log2_floor().unwrap_or_default()
     }
 
     #[endpoint]
@@ -48,7 +48,7 @@ pub trait BigIntMethods {
     }
 
     #[endpoint]
-    fn biguint_overwrite_u64(&self, bu: BigUint, small: u64) -> BigUint {
+    fn biguint_overwrite_u64(&self, mut bu: BigUint, small: u64) -> BigUint {
         bu.overwrite_u64(small);
         bu
     }
@@ -66,6 +66,11 @@ pub trait BigIntMethods {
     #[endpoint]
     fn big_uint_from_u64_2(&self, small: u64) -> BigUint {
         small.into()
+    }
+
+    #[endpoint]
+    fn biguint_from_u128(&self) -> BigUint {
+        BigUint::from(u128::MAX)
     }
 
     #[endpoint]

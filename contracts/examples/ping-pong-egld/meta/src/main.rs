@@ -1,3 +1,3 @@
 fn main() {
-    elrond_wasm_debug::meta::perform::<ping_pong_egld::AbiProvider>();
+    multiversx_sc_meta_lib::cli_main::<ping_pong_egld::AbiProvider>();
 }

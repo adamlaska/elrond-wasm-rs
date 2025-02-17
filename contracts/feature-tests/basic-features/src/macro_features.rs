@@ -1,7 +1,7 @@
-elrond_wasm::imports!();
+multiversx_sc::imports!();
 
-/// Various macros provided by elrond-wasm.
-#[elrond_wasm::module]
+/// Various macros provided by multiversx-sc.
+#[multiversx_sc::module]
 pub trait Macros {
     #[only_owner]
     #[endpoint]

@@ -1,16 +1,15 @@
 #![no_std]
 
-elrond_wasm::imports!();
-elrond_wasm::derive_imports!();
+use multiversx_sc::imports::*;
 
-use elrond_wasm_modules::{
+use function_selector::FunctionSelector;
+use multiversx_sc_modules::{
     bonding_curve,
     bonding_curve::utils::{events, owner_endpoints, storage, user_endpoints},
 };
-use function_selector::FunctionSelector;
 pub mod function_selector;
 
-#[elrond_wasm::contract]
+#[multiversx_sc::contract]
 pub trait Contract:
     bonding_curve::BondingCurveModule
     + storage::StorageModule
@@ -21,13 +20,13 @@ pub trait Contract:
     #[init]
     fn init(&self) {}
 
-    #[payable("*")]
+    #[payable]
     #[endpoint(sellToken)]
     fn sell_token_endpoint(&self) {
         self.sell_token::<FunctionSelector<Self::Api>>();
     }
 
-    #[payable("*")]
+    #[payable]
     #[endpoint(buyToken)]
     fn buy_token_endpoint(
         &self,
@@ -43,7 +42,7 @@ pub trait Contract:
     }
 
     #[endpoint(deposit)]
-    #[payable("*")]
+    #[payable]
     fn deposit_endpoint(&self, payment_token: OptionalValue<TokenIdentifier>) {
         self.deposit::<FunctionSelector<Self::Api>>(payment_token)
     }
