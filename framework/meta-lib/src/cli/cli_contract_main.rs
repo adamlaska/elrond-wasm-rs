@@ -34,9 +34,6 @@ pub fn cli_main<AbiObj: ContractAbiProvider>() {
                 meta_config_opt.generate_proxy()
             }
         }
-        ContractCliAction::ScenBlackbox(args) => {
-            meta_config_opt.generate_scen_blackbox_tests(args.overwrite);
-        }
     }
 }
 

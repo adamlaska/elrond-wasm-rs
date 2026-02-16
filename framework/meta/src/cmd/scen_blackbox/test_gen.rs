@@ -7,7 +7,7 @@ use std::{
     path::Path,
 };
 
-use crate::cargo_toml::CargoTomlContents;
+use multiversx_sc_meta_lib::cargo_toml::CargoTomlContents;
 
 use super::scenario_loader::{self, ScenarioFile, scenario_to_function_name};
 
@@ -177,8 +177,9 @@ impl<'a> TestGenerator<'a> {
 }
 
 /// Main entry point for blackbox test generation
+/// Assumes the current directory is the contract root directory
 pub fn generate_scen_blackbox_tests(overwrite: bool, abi: &ContractAbi) {
-    let contract_path = Path::new("..");
+    let contract_path = Path::new(".");
     let scenarios_dir = contract_path.join("scenarios");
 
     if !scenarios_dir.exists() {

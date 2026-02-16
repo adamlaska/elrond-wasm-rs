@@ -3194,6 +3194,7 @@ dependencies = [
  "convert_case",
  "copy_dir",
  "hex",
+ "multiversx-chain-scenario-format",
  "multiversx-sc",
  "multiversx-sc-meta-lib",
  "multiversx-sc-snippets",
