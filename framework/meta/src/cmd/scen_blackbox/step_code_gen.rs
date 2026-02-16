@@ -1,9 +1,11 @@
-use multiversx_chain_scenario_format::serde_raw::ValueSubTree;
+#![allow(unused_imports)] // TODO: Remove after all code is implemented
+
 use multiversx_sc_scenario::scenario::model::{
     Account, AddressKey, AddressValue, BytesKey, BytesValue, CheckAccount, CheckAccounts,
     CheckStateStep, CheckStorage, CheckStorageDetails, CheckValue, NewAddress, ScCallStep,
     ScDeployStep, ScQueryStep, SetStateStep, Step, TxCall, TxDeploy, TxExpect, TxQuery,
 };
+use multiversx_sc_scenario::scenario_format::serde_raw::ValueSubTree;
 
 use super::{scenario_loader::scenario_to_function_name, test_gen::TestGenerator};
 
@@ -392,7 +394,6 @@ impl<'a> TestGenerator<'a> {
     }
 
     pub(super) fn format_address_value(&mut self, value: &AddressValue) -> String {
-        use multiversx_chain_scenario_format::serde_raw::ValueSubTree;
         match &value.original {
             ValueSubTree::Str(s) => self.format_address(s),
             _ => {
@@ -486,7 +487,6 @@ impl<'a> TestGenerator<'a> {
     }
 
     fn format_value_as_string(value: &ValueSubTree) -> String {
-        use multiversx_chain_scenario_format::serde_raw::ValueSubTree;
         match value {
             ValueSubTree::Str(s) => s.clone(),
             ValueSubTree::List(items) => {

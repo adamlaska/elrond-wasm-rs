@@ -3,7 +3,7 @@ mod step_code_gen;
 mod test_gen;
 
 use crate::cli::ScenBlackboxArgs;
-use crate::folder_structure::{dir_pretty_print, RelevantDirectories, RelevantDirectory};
+use crate::folder_structure::{RelevantDirectories, RelevantDirectory, dir_pretty_print};
 use std::path::Path;
 
 pub use test_gen::generate_scen_blackbox_tests;
@@ -35,18 +35,25 @@ fn generate_for_contract(dir: &RelevantDirectory, overwrite: bool) {
 
     // Read the contract ABI
     let dir_name = dir.dir_name();
-    let output_abi_path = dir.path.join("output").join(format!("{}.abi.json", dir_name));
-    
+    let output_abi_path = dir
+        .path
+        .join("output")
+        .join(format!("{}.abi.json", dir_name));
+
     if !output_abi_path.exists() {
-        println!("  ⚠️  No ABI found at {}, skipping", output_abi_path.display());
+        println!(
+            "  ⚠️  No ABI found at {}, skipping",
+            output_abi_path.display()
+        );
         return;
     }
 
     let abi_json = std::fs::read_to_string(&output_abi_path)
         .unwrap_or_else(|_| panic!("Failed to read ABI file: {}", output_abi_path.display()));
-    
-    let abi_json: multiversx_sc_meta_lib::abi_json::ContractAbiJson = serde_json::from_str(&abi_json)
-        .unwrap_or_else(|_| panic!("Failed to parse ABI file: {}", output_abi_path.display()));
+
+    let abi_json: multiversx_sc_meta_lib::abi_json::ContractAbiJson =
+        serde_json::from_str(&abi_json)
+            .unwrap_or_else(|_| panic!("Failed to parse ABI file: {}", output_abi_path.display()));
 
     let abi: multiversx_sc::abi::ContractAbi = abi_json.into();
 
@@ -59,4 +66,3 @@ fn generate_for_contract(dir: &RelevantDirectory, overwrite: bool) {
     // Return to original directory
     std::env::set_current_dir(original_dir).expect("Failed to restore directory");
 }
-

@@ -69,15 +69,17 @@ impl<'a> TestGenerator<'a> {
     /// Example: "mxsc:../output/adder.mxsc.json" -> "ADDER_CODE_PATH"
     fn derive_code_path_const_name(code_path_expr: &str) -> String {
         // Extract the filename from the path
-        let path_str = code_path_expr.strip_prefix("mxsc:").unwrap_or(code_path_expr);
+        let path_str = code_path_expr
+            .strip_prefix("mxsc:")
+            .unwrap_or(code_path_expr);
         let filename = path_str.rsplit('/').next().unwrap_or(path_str);
-        
+
         // Remove .mxsc.json extension
         let contract_name = filename
             .strip_suffix(".mxsc.json")
             .unwrap_or(filename)
             .replace('-', "_");
-        
+
         format!("{}_CODE_PATH", contract_name.to_uppercase())
     }
 
@@ -90,27 +92,29 @@ impl<'a> TestGenerator<'a> {
 
         // Generate a new constant
         let const_name = Self::derive_code_path_const_name(code_path_expr);
-        
+
         // Extract the actual path (strip mxsc: prefix)
-        let path_value = code_path_expr.strip_prefix("mxsc:").unwrap_or(code_path_expr);
+        let path_value = code_path_expr
+            .strip_prefix("mxsc:")
+            .unwrap_or(code_path_expr);
         // Remove leading ../ if present to make it relative to contract root
         let path_value = path_value.strip_prefix("../").unwrap_or(path_value);
-        
+
         // Generate the constant declaration
         self.const_writeln(format!(
             "const {}: MxscPath = MxscPath::new(\"{}\");",
             const_name, path_value
         ));
-        
+
         // Store in map for future use
-        self.code_path_map.insert(code_path_expr.to_string(), const_name.clone());
-        
+        self.code_path_map
+            .insert(code_path_expr.to_string(), const_name.clone());
+
         const_name
     }
 
     /// Generates the combined test content to the file
     fn generate_combined_test_content(&mut self, scenario_files: &[ScenarioFile]) {
-
         // Generate a test function and steps function for each scenario
         for scenario_file in scenario_files {
             self.generate_scenario_test(scenario_file);
