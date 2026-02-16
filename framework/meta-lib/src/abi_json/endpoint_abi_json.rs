@@ -126,6 +126,11 @@ pub struct EndpointAbiJson {
     pub docs: Vec<String>,
     pub name: String,
 
+    #[serde(rename = "rustMethodName")]
+    #[serde(default)]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub rust_method_name: Option<String>,
+
     #[serde(default)]
     #[serde(skip_serializing_if = "Option::is_none")]
     pub title: Option<String>,
@@ -165,7 +170,12 @@ impl From<&EndpointAbi> for EndpointAbiJson {
     fn from(abi: &EndpointAbi) -> Self {
         EndpointAbiJson {
             docs: abi.docs.iter().map(|d| d.to_string()).collect(),
-            name: abi.name.to_string(),
+            name: abi.name.clone(),
+            rust_method_name: if abi.rust_method_name == abi.name {
+                None
+            } else {
+                Some(abi.rust_method_name.clone())
+            },
             title: abi.title.clone(),
             only_owner: if abi.only_owner { Some(true) } else { None },
             only_admin: if abi.only_admin { Some(true) } else { None },
@@ -195,7 +205,11 @@ impl From<&EndpointAbiJson> for EndpointAbi {
     fn from(abi: &EndpointAbiJson) -> Self {
         EndpointAbi {
             docs: abi.docs.iter().map(|d| d.to_string()).collect(),
-            name: abi.name.to_string(),
+            name: abi.name.clone(),
+            rust_method_name: abi
+                .rust_method_name
+                .clone()
+                .unwrap_or_else(|| abi.name.clone()),
             only_owner: abi.only_owner.unwrap_or(false),
             only_admin: abi.only_admin.unwrap_or(false),
             mutability: match abi.mutability {
@@ -212,7 +226,6 @@ impl From<&EndpointAbiJson> for EndpointAbi {
             outputs: abi.outputs.iter().map(OutputAbi::from).collect(),
             labels: abi.labels.clone(),
             allow_multiple_var_args: abi.allow_multiple_var_args.unwrap_or(false),
-            rust_method_name: abi.name.clone(),
             title: None,
             endpoint_type: EndpointTypeAbi::Endpoint,
         }
