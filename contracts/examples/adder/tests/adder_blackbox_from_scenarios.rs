@@ -21,8 +21,8 @@ fn interactor_trace_scen() {
 }
 
 pub fn interactor_trace_scen_steps(world: &mut ScenarioWorld) {
-    world.account(ADDRESS_HEX_1).nonce(ScenarioValueRaw::str("481"))
-        .balance(ScenarioValueRaw::str("106274669842530000003"))
+    world.account(ADDRESS_HEX_1).nonce(481u64)
+        .balance(106274669842530000003u128)
         ;
 
 
@@ -58,8 +58,8 @@ fn adder_scen() {
 }
 
 pub fn adder_scen_steps(world: &mut ScenarioWorld) {
-    world.account(OWNER_ADDRESS).nonce(ScenarioValueRaw::str("1"))
-        .balance(ScenarioValueRaw::str("0"))
+    world.account(OWNER_ADDRESS).nonce(1u64)
+        .balance(0u64)
         ;
 
     world.tx()

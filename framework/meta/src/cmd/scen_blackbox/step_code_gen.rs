@@ -111,7 +111,7 @@ impl<'a> TestGenerator<'a> {
                     if let Some(nonce) = &account.nonce {
                         self.step_writeln(format!(
                             ".nonce({})",
-                            Self::format_value(&nonce.original)
+                            Self::format_nonce_value(&nonce.original)
                         ));
                         self.step_write("        ");
                     }
@@ -121,7 +121,7 @@ impl<'a> TestGenerator<'a> {
                     if let Some(balance) = &account.balance {
                         self.step_writeln(format!(
                             ".balance({})",
-                            Self::format_value(&balance.original)
+                            Self::format_balance_value(&balance.original)
                         ));
                         self.step_write("        ");
                     }
@@ -497,6 +497,45 @@ impl<'a> TestGenerator<'a> {
                 let strs: Vec<String> = map.values().map(Self::format_value_as_string).collect();
                 strs.join("|")
             }
+        }
+    }
+
+    fn format_nonce_value(value: &ValueSubTree) -> String {
+        let num_str = match value {
+            ValueSubTree::Str(s) => s.as_str(),
+            _ => return format!("\"{}\"", Self::format_value_as_string(value)),
+        };
+
+        // Remove commas and underscores for parsing
+        let cleaned = num_str.replace(',', "").replace('_', "");
+
+        // Nonces are always u64
+        if cleaned.parse::<u64>().is_ok() {
+            format!("{}u64", cleaned)
+        } else {
+            format!("\"{}\"", num_str)
+        }
+    }
+
+    fn format_balance_value(value: &ValueSubTree) -> String {
+        let num_str = match value {
+            ValueSubTree::Str(s) => s.as_str(),
+            _ => return format!("\"{}\"", Self::format_value_as_string(value)),
+        };
+
+        // Remove commas and underscores for parsing
+        let cleaned = num_str.replace(',', "").replace('_', "");
+
+        // Try to parse as u128 and choose appropriate type
+        if let Ok(num_u128) = cleaned.parse::<u128>() {
+            if num_u128 <= u64::MAX as u128 {
+                format!("{}u64", cleaned)
+            } else {
+                format!("{}u128", cleaned)
+            }
+        } else {
+            // Fallback to string if not a valid number
+            format!("\"{}\"", num_str)
         }
     }
 
