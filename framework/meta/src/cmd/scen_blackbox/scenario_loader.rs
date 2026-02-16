@@ -1,10 +1,11 @@
-use multiversx_chain_scenario_format::serde_raw::ScenarioRaw;
+use multiversx_sc_scenario::scenario::model::Scenario;
+use multiversx_sc_scenario::scenario::parse_scenario;
 use std::{fs, path::Path};
 
 /// Represents a parsed scenario file
 pub struct ScenarioFile {
     pub file_name: String,
-    pub scenario: ScenarioRaw,
+    pub scenario: Scenario,
 }
 
 /// Scans the scenarios folder and loads all .scen.json files
@@ -46,7 +47,7 @@ fn load_scenario_file(path: &Path) -> Option<ScenarioFile> {
         .and_then(|s| s.to_str())
         .map(|s| s.to_string())?;
 
-    let scenario = ScenarioRaw::load_from_file(path);
+    let scenario = parse_scenario(path);
 
     Some(ScenarioFile {
         file_name,

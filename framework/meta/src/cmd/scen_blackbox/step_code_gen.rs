@@ -1,79 +1,60 @@
-use multiversx_chain_scenario_format::serde_raw::{
-    CheckAccountsRaw, StepRaw, TxCallRaw, TxDeployRaw, TxExpectRaw, TxQueryRaw,
+use multiversx_chain_scenario_format::serde_raw::ValueSubTree;
+use multiversx_sc_scenario::scenario::model::{
+    Account, AddressKey, AddressValue, BytesKey, BytesValue, CheckAccount, CheckAccounts,
+    CheckStateStep, CheckStorage, CheckStorageDetails, CheckValue, NewAddress, ScCallStep,
+    ScDeployStep, ScQueryStep, SetStateStep, Step, TxCall, TxDeploy, TxExpect, TxQuery,
 };
 
 use super::{scenario_loader::scenario_to_function_name, test_gen::TestGenerator};
 
 impl<'a> TestGenerator<'a> {
     /// Generates code for a single step
-    pub fn generate_step_code(&mut self, step: &StepRaw) {
+    pub fn generate_step_code(&mut self, step: &Step) {
         match step {
-            StepRaw::ExternalSteps { comment, path } => {
-                self.generate_external_steps(path, comment.as_deref());
+            Step::ExternalSteps(step_data) => {
+                self.generate_external_steps(&step_data.path, step_data.comment.as_deref());
             }
-            StepRaw::SetState {
-                comment,
-                accounts,
-                new_addresses,
-                ..
-            } => {
-                self.generate_set_state(comment.as_deref(), accounts, new_addresses);
+            Step::SetState(set_state) => {
+                self.generate_set_state(
+                    set_state.comment.as_deref(),
+                    &set_state.accounts,
+                    &set_state.new_addresses,
+                );
             }
-            StepRaw::ScDeploy {
-                id,
-                tx_id,
-                comment,
-                tx,
-                expect,
-                ..
-            } => {
+            Step::ScDeploy(sc_deploy) => {
                 self.generate_sc_deploy(
-                    id.as_ref().or(tx_id.as_ref()),
-                    comment.as_deref(),
-                    tx,
-                    expect.as_ref(),
+                    sc_deploy.tx_id.as_ref(),
+                    sc_deploy.comment.as_deref(),
+                    &sc_deploy.tx,
+                    sc_deploy.expect.as_ref(),
                 );
             }
-            StepRaw::ScCall {
-                id,
-                tx_id,
-                comment,
-                tx,
-                expect,
-                ..
-            } => {
+            Step::ScCall(sc_call) => {
                 self.generate_sc_call(
-                    id.as_ref().or(tx_id.as_ref()),
-                    comment.as_deref(),
-                    tx,
-                    expect.as_ref(),
+                    sc_call.tx_id.as_ref(),
+                    sc_call.comment.as_deref(),
+                    &sc_call.tx,
+                    sc_call.expect.as_ref(),
                 );
             }
-            StepRaw::ScQuery {
-                id,
-                tx_id,
-                comment,
-                tx,
-                expect,
-                ..
-            } => {
+            Step::ScQuery(sc_query) => {
                 self.generate_sc_query(
-                    id.as_ref().or(tx_id.as_ref()),
-                    comment.as_deref(),
-                    tx,
-                    expect.as_ref(),
+                    sc_query.tx_id.as_ref(),
+                    sc_query.comment.as_deref(),
+                    &sc_query.tx,
+                    sc_query.expect.as_ref(),
                 );
             }
-            StepRaw::CheckState { comment, accounts } => {
-                self.generate_check_state(comment.as_deref(), accounts);
+            Step::CheckState(check_state) => {
+                self.generate_check_state(check_state.comment.as_deref(), &check_state.accounts);
             }
-            StepRaw::Transfer { .. } => {
+            Step::Transfer(_transfer) => {
                 self.step_writeln("    // TODO: Transfer step");
             }
-            StepRaw::ValidatorReward { .. } => {
+            Step::ValidatorReward(_) => {
                 self.step_writeln("    // TODO: ValidatorReward step");
             }
-            StepRaw::DumpState { .. } => {
+            Step::DumpState(_) => {
                 self.step_writeln("    // TODO: DumpState step");
             }
         }
@@ -98,11 +79,8 @@ impl<'a> TestGenerator<'a> {
     fn generate_set_state(
         &mut self,
         comment: Option<&str>,
-        accounts: &std::collections::BTreeMap<
-            String,
-            multiversx_chain_scenario_format::serde_raw::AccountRaw,
-        >,
-        new_addresses: &[multiversx_chain_scenario_format::serde_raw::NewAddressRaw],
+        accounts: &std::collections::BTreeMap<AddressKey, Account>,
+        new_addresses: &[NewAddress],
     ) {
         if let Some(comment_text) = comment {
             self.step_writeln(format!("    // {}", comment_text));
@@ -110,18 +88,18 @@ impl<'a> TestGenerator<'a> {
 
         // Generate account setup
         for (address_key, account) in accounts {
-            let address_expr = self.format_address(address_key);
+            let address_expr = self.format_address(&address_key.original);
 
             // Check if we need to set anything
             let has_nonce = account
                 .nonce
                 .as_ref()
-                .map(|v| !Self::is_default_value(v))
+                .map(|v| !Self::is_default_value(&v.original))
                 .unwrap_or(false);
             let has_balance = account
                 .balance
                 .as_ref()
-                .map(|v| !Self::is_default_value(v))
+                .map(|v| !Self::is_default_value(&v.original))
                 .unwrap_or(false);
 
             if has_nonce || has_balance {
@@ -129,14 +107,20 @@ impl<'a> TestGenerator<'a> {
 
                 if has_nonce {
                     if let Some(nonce) = &account.nonce {
-                        self.step_writeln(format!(".nonce({})", Self::format_value(nonce)));
+                        self.step_writeln(format!(
+                            ".nonce({})",
+                            Self::format_value(&nonce.original)
+                        ));
                         self.step_write("        ");
                     }
                 }
 
                 if has_balance {
                     if let Some(balance) = &account.balance {
-                        self.step_writeln(format!(".balance({})", Self::format_value(balance)));
+                        self.step_writeln(format!(
+                            ".balance({})",
+                            Self::format_value(&balance.original)
+                        ));
                         self.step_write("        ");
                     }
                 }
@@ -147,8 +131,8 @@ impl<'a> TestGenerator<'a> {
 
         // Store new addresses for later use in deploy steps
         for new_addr in new_addresses {
-            let creator_key = new_addr.creator_address.to_concatenated_string();
-            let new_address_key = new_addr.new_address.to_concatenated_string();
+            let creator_key = new_addr.creator_address.original.to_concatenated_string();
+            let new_address_key = new_addr.new_address.original.to_concatenated_string();
             self.new_address_map.insert(creator_key, new_address_key);
         }
 
@@ -159,8 +143,8 @@ impl<'a> TestGenerator<'a> {
         &mut self,
         id: Option<&String>,
         comment: Option<&str>,
-        tx: &TxDeployRaw,
-        _expect: Option<&TxExpectRaw>,
+        tx: &TxDeploy,
+        _expect: Option<&TxExpect>,
     ) {
         if let Some(comment_text) = comment {
             self.step_writeln(format!("    // {}", comment_text));
@@ -185,19 +169,19 @@ impl<'a> TestGenerator<'a> {
             if i > 0 {
                 self.step_write(", ");
             }
-            self.step_write(Self::format_value(arg));
+            self.step_write(Self::format_value(&arg.original));
         }
         self.step_writeln(")");
         self.step_write("        ");
 
         // Generate code path from the contract_code field
-        let code_path_expr = tx.contract_code.to_concatenated_string();
+        let code_path_expr = tx.contract_code.original.to_concatenated_string();
         let code_path_const = self.format_code_path(&code_path_expr);
         self.step_writeln(format!(".code({})", code_path_const));
         self.step_write("        ");
 
         // Add new_address if we have a prediction from setState
-        let from_address = tx.from.to_concatenated_string();
+        let from_address = tx.from.original.to_concatenated_string();
         if let Some(new_address) = self.new_address_map.get(&from_address).cloned() {
             // Format as TestSCAddress::new("name") if it's sc:name
             let address_expr = self.format_address(&new_address);
@@ -213,8 +197,8 @@ impl<'a> TestGenerator<'a> {
         &mut self,
         id: Option<&String>,
         comment: Option<&str>,
-        tx: &TxCallRaw,
-        _expect: Option<&TxExpectRaw>,
+        tx: &TxCall,
+        _expect: Option<&TxExpect>,
     ) {
         if let Some(comment_text) = comment {
             self.step_writeln(format!("    // {}", comment_text));
@@ -244,7 +228,7 @@ impl<'a> TestGenerator<'a> {
             if i > 0 {
                 self.step_write(", ");
             }
-            self.step_write(Self::format_value(arg));
+            self.step_write(Self::format_value(&arg.original));
         }
         self.step_writeln(")");
         self.step_write("        ");
@@ -257,8 +241,8 @@ impl<'a> TestGenerator<'a> {
         &mut self,
         id: Option<&String>,
         comment: Option<&str>,
-        tx: &TxQueryRaw,
-        expect: Option<&TxExpectRaw>,
+        tx: &TxQuery,
+        expect: Option<&TxExpect>,
     ) {
         if let Some(comment_text) = comment {
             self.step_writeln(format!("    // {}", comment_text));
@@ -285,17 +269,14 @@ impl<'a> TestGenerator<'a> {
             if i > 0 {
                 self.step_write(", ");
             }
-            self.step_write(Self::format_value(arg));
+            self.step_write(Self::format_value(&arg.original));
         }
         self.step_writeln(")");
         self.step_write("        ");
 
         // Add returns if we have expected output
         if let Some(expect_val) = expect {
-            if let multiversx_chain_scenario_format::serde_raw::CheckValueListRaw::CheckList(
-                ref out_values,
-            ) = expect_val.out
-            {
+            if let CheckValue::Equal(ref out_values) = expect_val.out {
                 self.step_write(".returns(ExpectValue(");
                 for (i, out) in out_values.iter().enumerate() {
                     if i > 0 {
@@ -312,27 +293,24 @@ impl<'a> TestGenerator<'a> {
         self.step_writeln("");
     }
 
-    fn generate_check_state(&mut self, comment: Option<&str>, accounts: &CheckAccountsRaw) {
+    fn generate_check_state(&mut self, comment: Option<&str>, accounts: &CheckAccounts) {
         if let Some(comment_text) = comment {
             self.step_writeln(format!("    // {}", comment_text));
         }
 
         for (address_key, account) in &accounts.accounts {
-            let address_expr = self.format_address(address_key);
+            let address_expr = self.format_address(&address_key.original);
 
             // Check if we need to check storage
-            if let multiversx_chain_scenario_format::serde_raw::CheckStorageRaw::Equal(
-                ref storage_details,
-            ) = account.storage
-            {
+            if let CheckStorage::Equal(ref storage_details) = account.storage {
                 if !storage_details.storages.is_empty() {
                     self.step_writeln(format!("    world.check_account({})", address_expr));
 
                     for (key, value) in &storage_details.storages {
+                        let value_str = Self::format_check_value_for_storage(value);
                         self.step_writeln(format!(
                             "        .check_storage(\"{}\", \"{}\")",
-                            key,
-                            Self::format_check_value_as_string(value)
+                            key.original, value_str
                         ));
                     }
 
@@ -360,7 +338,8 @@ impl<'a> TestGenerator<'a> {
                 "const {}: TestAddress = TestAddress::new(\"{}\");",
                 const_name, name
             ));
-            self.test_address_map.insert(addr.to_string(), const_name.clone());
+            self.test_address_map
+                .insert(addr.to_string(), const_name.clone());
             const_name
         } else if let Some(name) = clean.strip_prefix("sc:") {
             // Check if we already have a constant for this address
@@ -373,7 +352,8 @@ impl<'a> TestGenerator<'a> {
                 "const {}: TestSCAddress = TestSCAddress::new(\"{}\");",
                 const_name, name
             ));
-            self.test_address_map.insert(addr.to_string(), const_name.clone());
+            self.test_address_map
+                .insert(addr.to_string(), const_name.clone());
             const_name
         } else if clean.starts_with("0x") || clean.starts_with("0X") {
             // Hex address - check if we already have a constant for it
@@ -387,7 +367,8 @@ impl<'a> TestGenerator<'a> {
                 "const {}: Address = Address::from_hex(\"{}\");",
                 const_name, clean
             ));
-            self.hex_address_map.insert(clean.to_string(), const_name.clone());
+            self.hex_address_map
+                .insert(clean.to_string(), const_name.clone());
             const_name
         } else if clean.len() == 64 && clean.chars().all(|c| c.is_ascii_hexdigit()) {
             // Hex address without 0x prefix - check if we already have a constant for it
@@ -401,7 +382,8 @@ impl<'a> TestGenerator<'a> {
                 "const {}: Address = Address::from_hex(\"{}\");",
                 const_name, clean
             ));
-            self.hex_address_map.insert(clean.to_string(), const_name.clone());
+            self.hex_address_map
+                .insert(clean.to_string(), const_name.clone());
             const_name
         } else {
             // Raw address - wrap in ScenarioValueRaw
@@ -409,22 +391,18 @@ impl<'a> TestGenerator<'a> {
         }
     }
 
-    pub(super) fn format_address_value(
-        &mut self,
-        value: &multiversx_chain_scenario_format::serde_raw::ValueSubTree,
-    ) -> String {
+    pub(super) fn format_address_value(&mut self, value: &AddressValue) -> String {
         use multiversx_chain_scenario_format::serde_raw::ValueSubTree;
-        match value {
+        match &value.original {
             ValueSubTree::Str(s) => self.format_address(s),
             _ => {
                 // Fallback for non-string addresses
-                Self::format_value(value)
+                Self::format_value(&value.original)
             }
         }
     }
 
-    fn format_value(value: &multiversx_chain_scenario_format::serde_raw::ValueSubTree) -> String {
-        use multiversx_chain_scenario_format::serde_raw::ValueSubTree;
+    fn format_value(value: &ValueSubTree) -> String {
         match value {
             ValueSubTree::Str(s) => {
                 format!("ScenarioValueRaw::str(\"{}\")", Self::escape_string(s))
@@ -458,14 +436,17 @@ impl<'a> TestGenerator<'a> {
         }
     }
 
-    fn format_check_value(
-        value: &multiversx_chain_scenario_format::serde_raw::CheckBytesValueRaw,
-    ) -> String {
-        use multiversx_chain_scenario_format::serde_raw::CheckBytesValueRaw;
+    fn format_check_value(value: &CheckValue<BytesValue>) -> String {
         match value {
-            CheckBytesValueRaw::Unspecified => "ScenarioValueRaw::str(\"\")".to_string(),
-            CheckBytesValueRaw::Star => "ScenarioValueRaw::str(\"*\")".to_string(),
-            CheckBytesValueRaw::Equal(v) => Self::format_value(v),
+            CheckValue::Star => "ScenarioValueRaw::str(\"*\")".to_string(),
+            CheckValue::Equal(v) => Self::format_value(&v.original),
+        }
+    }
+
+    fn format_check_value_for_storage(value: &CheckValue<BytesValue>) -> String {
+        match value {
+            CheckValue::Star => "*".to_string(),
+            CheckValue::Equal(v) => Self::format_value_as_string(&v.original),
         }
     }
 
@@ -504,20 +485,7 @@ impl<'a> TestGenerator<'a> {
         format!("{}_proxy::{}Proxy", self.crate_name, struct_name)
     }
 
-    fn format_check_value_as_string(
-        value: &multiversx_chain_scenario_format::serde_raw::CheckBytesValueRaw,
-    ) -> String {
-        use multiversx_chain_scenario_format::serde_raw::CheckBytesValueRaw;
-        match value {
-            CheckBytesValueRaw::Unspecified => String::new(),
-            CheckBytesValueRaw::Star => "*".to_string(),
-            CheckBytesValueRaw::Equal(v) => Self::format_value_as_string(v),
-        }
-    }
-
-    fn format_value_as_string(
-        value: &multiversx_chain_scenario_format::serde_raw::ValueSubTree,
-    ) -> String {
+    fn format_value_as_string(value: &ValueSubTree) -> String {
         use multiversx_chain_scenario_format::serde_raw::ValueSubTree;
         match value {
             ValueSubTree::Str(s) => s.clone(),
@@ -532,13 +500,16 @@ impl<'a> TestGenerator<'a> {
         }
     }
 
-    fn is_default_value(value: &multiversx_chain_scenario_format::serde_raw::ValueSubTree) -> bool {
+    fn is_default_value(value: &ValueSubTree) -> bool {
         let val_str = format!("{:?}", value);
         val_str == "\"0\"" || val_str == "\"\"" || val_str.is_empty()
     }
 
     /// Converts a test address name (like "owner") to a constant name (like "OWNER_ADDRESS")
     fn test_address_to_const_name(name: &str) -> String {
-        format!("{}_ADDRESS", name.to_uppercase().replace(['-', '.', ' '], "_"))
+        format!(
+            "{}_ADDRESS",
+            name.to_uppercase().replace(['-', '.', ' '], "_")
+        )
     }
 }
