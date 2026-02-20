@@ -1,4 +1,7 @@
-use multiversx_sc::types::{AnnotatedValue, ManagedBuffer, TxCodeValue, TxEnv};
+use multiversx_sc::{
+    codec::{EncodeError, TopEncode, TopEncodeOutput},
+    types::{AnnotatedValue, ManagedBuffer, TxCodeValue, TxEnv},
+};
 
 use crate::scenario_format::{
     interpret_trait::{InterpretableFrom, InterpreterContext, IntoRaw},
@@ -150,6 +153,15 @@ impl Default for BytesValue {
 impl fmt::Display for BytesValue {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         self.original.fmt(f)
+    }
+}
+
+impl TopEncode for BytesValue {
+    fn top_encode<O>(&self, output: O) -> Result<(), EncodeError>
+    where
+        O: TopEncodeOutput,
+    {
+        self.value.top_encode(output)
     }
 }
 

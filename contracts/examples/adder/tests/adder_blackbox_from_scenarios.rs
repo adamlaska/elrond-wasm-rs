@@ -26,26 +26,29 @@ pub fn interactor_trace_scen_steps(world: &mut ScenarioWorld) {
         ;
 
 
-    world.tx()
+    world
+        .tx()
         .from(ADDRESS_HEX_1)
         .typed(adder_proxy::AdderProxy)
-        .init(ScenarioValueRaw::str("0x00"))
+        .init(ScenarioValueRaw::new("0x00"))
         .code(ADDER_CODE_PATH)
         .new_address(ADDRESS_HEX_2)
         .run();
 
-    world.tx()
+    world
+        .tx()
         .from(ADDRESS_HEX_1)
         .to(ADDRESS_HEX_2)
         .typed(adder_proxy::AdderProxy)
-        .add(ScenarioValueRaw::str("0x07"))
+        .add(ScenarioValueRaw::new("0x07"))
         .run();
 
-    world.tx()
+    world
+        .tx()
         .from(ADDRESS_HEX_1)
         .to(ADDRESS_HEX_2)
         .typed(adder_proxy::AdderProxy)
-        .add(ScenarioValueRaw::str("0x05"))
+        .add(ScenarioValueRaw::new("0x05"))
         .run();
 
 }
@@ -62,29 +65,32 @@ pub fn adder_scen_steps(world: &mut ScenarioWorld) {
         .balance(0u64)
         ;
 
-    world.tx()
+    world
+        .tx()
         .id("1")
         .from(OWNER_ADDRESS)
         .typed(adder_proxy::AdderProxy)
-        .init(ScenarioValueRaw::str("5"))
+        .init(ScenarioValueRaw::new("5"))
         .code(ADDER_CODE_PATH)
         .new_address(ADDER_ADDRESS)
         .run();
 
-    world.query()
+    world
+        .query()
         .id("2")
         .to(ADDER_ADDRESS)
         .typed(adder_proxy::AdderProxy)
         .sum()
-        .returns(ExpectValue(ScenarioValueRaw::str("5")))
+        .returns(ExpectValue(ScenarioValueRaw::new("5")))
         .run();
 
-    world.tx()
+    world
+        .tx()
         .id("3")
         .from(OWNER_ADDRESS)
         .to(ADDER_ADDRESS)
         .typed(adder_proxy::AdderProxy)
-        .add(ScenarioValueRaw::str("3"))
+        .add(ScenarioValueRaw::new("3"))
         .run();
 
     world.check_account(ADDER_ADDRESS)

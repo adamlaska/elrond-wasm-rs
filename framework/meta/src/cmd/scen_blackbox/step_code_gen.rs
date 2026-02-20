@@ -1,5 +1,7 @@
 #![allow(unused_imports)] // TODO: Remove after all code is implemented
 
+use std::collections::BTreeMap;
+
 use multiversx_sc_scenario::scenario::model::{
     Account, AddressKey, AddressValue, BytesKey, BytesValue, CheckAccount, CheckAccounts,
     CheckStateStep, CheckStorage, CheckStorageDetails, CheckValue, NewAddress, ScCallStep,
@@ -152,7 +154,8 @@ impl<'a> TestGenerator<'a> {
             self.step_writeln(format!("    // {}", comment_text));
         }
 
-        self.step_writeln("    world.tx()");
+        self.step_writeln("    world");
+        self.step_writeln("        .tx()");
 
         if let Some(id_val) = id {
             self.step_writeln(format!("        .id(\"{}\")", id_val));
@@ -206,7 +209,8 @@ impl<'a> TestGenerator<'a> {
             self.step_writeln(format!("    // {}", comment_text));
         }
 
-        self.step_writeln("    world.tx()");
+        self.step_writeln("    world");
+        self.step_writeln("        .tx()");
 
         if let Some(id_val) = id {
             self.step_writeln(format!("        .id(\"{}\")", id_val));
@@ -250,7 +254,8 @@ impl<'a> TestGenerator<'a> {
             self.step_writeln(format!("    // {}", comment_text));
         }
 
-        self.step_writeln("    world.query()");
+        self.step_writeln("    world");
+        self.step_writeln("        .query()");
 
         if let Some(id_val) = id {
             self.step_writeln(format!("        .id(\"{}\")", id_val));
@@ -389,7 +394,7 @@ impl<'a> TestGenerator<'a> {
             const_name
         } else {
             // Raw address - wrap in ScenarioValueRaw
-            format!("ScenarioValueRaw::str(\"{}\")", clean)
+            format!("ScenarioValueRaw::new(\"{}\")", clean)
         }
     }
 
@@ -403,43 +408,63 @@ impl<'a> TestGenerator<'a> {
         }
     }
 
-    fn format_value(value: &ValueSubTree) -> String {
+    fn format_value_subtree(value: &ValueSubTree) -> String {
         match value {
             ValueSubTree::Str(s) => {
-                format!("ScenarioValueRaw::str(\"{}\")", Self::escape_string(s))
+                format!(
+                    "ValueSubTree::Str(\"{}\".to_string())",
+                    Self::escape_string(s)
+                )
             }
             ValueSubTree::List(items) => {
                 if items.is_empty() {
-                    "ScenarioValueRaw::list(&[])".to_string()
+                    "ValueSubTree::List(vec![])".to_string()
                 } else {
                     let formatted_items: Vec<String> =
-                        items.iter().map(Self::format_value).collect();
-                    format!("ScenarioValueRaw::list(&[{}])", formatted_items.join(", "))
+                        items.iter().map(Self::format_value_subtree).collect();
+                    format!("ValueSubTree::List(vec![{}])", formatted_items.join(", "))
                 }
             }
             ValueSubTree::Map(map) => {
                 if map.is_empty() {
-                    "ScenarioValueRaw::map(&[])".to_string()
+                    "ValueSubTree::Map(BTreeMap::new())".to_string()
                 } else {
                     let formatted_entries: Vec<String> = map
                         .iter()
                         .map(|(k, v)| {
                             format!(
-                                "(\"{}\", {})",
+                                "(\"{}\".to_string(), {})",
                                 Self::escape_string(k),
-                                Self::format_value(v)
+                                Self::format_value_subtree(v)
                             )
                         })
                         .collect();
-                    format!("ScenarioValueRaw::map(&[{}])", formatted_entries.join(", "))
+                    format!(
+                        "ValueSubTree::Map(BTreeMap::from([{}]))",
+                        formatted_entries.join(", ")
+                    )
                 }
+            }
+        }
+    }
+
+    fn format_value(value: &ValueSubTree) -> String {
+        match value {
+            ValueSubTree::Str(s) => {
+                format!("ScenarioValueRaw::new(\"{}\")", Self::escape_string(s))
+            }
+            _ => {
+                format!(
+                    "ScenarioValueRaw::new({})",
+                    Self::format_value_subtree(value)
+                )
             }
         }
     }
 
     fn format_check_value(value: &CheckValue<BytesValue>) -> String {
         match value {
-            CheckValue::Star => "ScenarioValueRaw::str(\"*\")".to_string(),
+            CheckValue::Star => "ScenarioValueRaw::new(\"*\")".to_string(),
             CheckValue::Equal(v) => Self::format_value(&v.original),
         }
     }

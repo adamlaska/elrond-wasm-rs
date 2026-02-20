@@ -29,3 +29,7 @@ pub use crate::{
 pub use crate::multiversx_sc::chain_core::types::{BLSKey, BLSSignature, ReturnCode};
 
 pub use multiversx_chain_vm::schedule::GasScheduleVersion;
+
+/// Acts as placeholder when converting values from the Mandos scenario to Rust tests.
+pub type ScenarioValueRaw =
+    multiversx_sc::abi::TypeAbiUniversalInput<crate::scenario::model::BytesValue>;
