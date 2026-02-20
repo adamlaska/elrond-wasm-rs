@@ -3,9 +3,10 @@
 use std::collections::BTreeMap;
 
 use multiversx_sc_scenario::scenario::model::{
-    Account, AddressKey, AddressValue, BytesKey, BytesValue, CheckAccount, CheckAccounts,
-    CheckStateStep, CheckStorage, CheckStorageDetails, CheckValue, NewAddress, ScCallStep,
-    ScDeployStep, ScQueryStep, SetStateStep, Step, TxCall, TxDeploy, TxExpect, TxQuery,
+    Account, AddressKey, AddressValue, BigUintValue, BytesKey, BytesValue, CheckAccount,
+    CheckAccounts, CheckStateStep, CheckStorage, CheckStorageDetails, CheckValue, NewAddress,
+    ScCallStep, ScDeployStep, ScQueryStep, SetStateStep, Step, TxCall, TxDeploy, TxESDT,
+    TxExpect, TxQuery,
 };
 use multiversx_sc_scenario::scenario_format::serde_raw::ValueSubTree;
 
@@ -181,6 +182,9 @@ impl<'a> TestGenerator<'a> {
         self.step_writeln(")");
         self.step_write("        ");
 
+        // Generate EGLD payment for deploy (no ESDT support on deploy)
+        self.generate_egld_payment(&tx.egld_value);
+
         // Generate code path from the contract_code field
         let code_path_expr = tx.contract_code.original.to_concatenated_string();
         let code_path_const = self.format_code_path(&code_path_expr);
@@ -243,8 +247,98 @@ impl<'a> TestGenerator<'a> {
         self.step_writeln(")");
         self.step_write("        ");
 
+        // Generate payments
+        self.generate_payments(&tx.egld_value, &tx.esdt_value);
+
         self.step_writeln(".run();");
         self.step_writeln("");
+    }
+
+    /// Generates `.payment(...)` calls for EGLD and ESDT transfers.
+    fn generate_payments(&mut self, egld_value: &BigUintValue, esdt_value: &[TxESDT]) {
+        use multiversx_sc_scenario::num_bigint::BigUint;
+
+        if !esdt_value.is_empty() {
+            // ESDT payments (may include EGLD-000000)
+            for esdt in esdt_value {
+                self.generate_esdt_payment(esdt);
+            }
+        } else if egld_value.value > BigUint::from(0u32) {
+            // Plain EGLD payment
+            self.generate_egld_payment(egld_value);
+        }
+    }
+
+    /// Generates a `.payment(Payment::try_new(...).unwrap())` call for an EGLD value.
+    fn generate_egld_payment(&mut self, egld_value: &BigUintValue) {
+        use multiversx_sc_scenario::num_bigint::BigUint;
+
+        if egld_value.value > BigUint::from(0u32) {
+            let amount = Self::format_biguint_value(&egld_value.value);
+            self.step_writeln(format!(
+                ".payment(Payment::try_new(TestTokenId::EGLD, 0, {}).unwrap())",
+                amount
+            ));
+            self.step_write("        ");
+        }
+    }
+
+    /// Generates a `.payment(Payment::try_new(...).unwrap())` call for an ESDT transfer.
+    fn generate_esdt_payment(&mut self, esdt: &TxESDT) {
+        let nonce = esdt.nonce.value;
+        let amount = Self::format_biguint_value(&esdt.esdt_value.value);
+
+        if esdt.is_egld() {
+            self.step_writeln(format!(
+                ".payment(Payment::try_new(TestTokenId::EGLD, {}, {}).unwrap())",
+                nonce, amount
+            ));
+        } else {
+            let token_const = self.format_token_id(&esdt.esdt_token_identifier);
+            self.step_writeln(format!(
+                ".payment(Payment::try_new({}, {}, {}).unwrap())",
+                token_const, nonce, amount
+            ));
+        }
+        self.step_write("        ");
+    }
+
+    /// Formats a token identifier from a BytesValue into a constant reference.
+    /// Generates a `TestTokenId` constant if one doesn't already exist.
+    fn format_token_id(&mut self, token_id: &BytesValue) -> String {
+        let original_str = match &token_id.original {
+            ValueSubTree::Str(s) => s.as_str(),
+            _ => return format!("ScenarioValueRaw::new(\"{:?}\")", token_id.value),
+        };
+
+        // Check if we already have a constant for this token
+        if let Some(const_name) = self.token_id_map.get(original_str) {
+            return const_name.clone();
+        }
+
+        // Strip "str:" prefix if present
+        let name = original_str
+            .strip_prefix("str:")
+            .unwrap_or(original_str);
+
+        // Generate constant name: "TOK-123456" -> "TOK_123456"
+        let const_name = name.to_uppercase().replace('-', "_");
+
+        self.const_writeln(format!(
+            "const {}: TestTokenId = TestTokenId::new(\"{}\");",
+            const_name, name
+        ));
+
+        self.token_id_map
+            .insert(original_str.to_string(), const_name.clone());
+
+        const_name
+    }
+
+    /// Formats a BigUint value for use as a payment amount.
+    fn format_biguint_value(value: &multiversx_sc_scenario::num_bigint::BigUint) -> String {
+        let bytes = value.to_bytes_be();
+        num_format::format_unsigned(&bytes, "BigUint")
     }
 
     fn generate_sc_query(

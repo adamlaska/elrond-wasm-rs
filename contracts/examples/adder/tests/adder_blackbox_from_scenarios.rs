@@ -11,11 +11,7 @@ const OWNER_ADDRESS: TestAddress = TestAddress::new("owner");
 const ADDER_ADDRESS: TestSCAddress = TestSCAddress::new("adder");
 
 fn world() -> ScenarioWorld {
-    let mut blockchain = ScenarioWorld::new().executor_config(ExecutorConfig::full_suite());
-
-    blockchain.set_current_dir_from_workspace("contracts/examples/adder");
-    blockchain.register_contract(ADDER_CODE_PATH, adder::ContractBuilder);
-    blockchain
+    todo!()
 }
 
 #[test]

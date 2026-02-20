@@ -26,6 +26,8 @@ pub struct TestGenerator<'a> {
     pub hex_address_counter: usize,
     /// Maps code path expression to constant name
     pub code_path_map: HashMap<String, String>,
+    /// Maps token identifier to constant name
+    pub token_id_map: HashMap<String, String>,
     /// Buffer for constant declarations
     pub const_buffer: String,
     /// Buffer for test and step function code
@@ -43,6 +45,7 @@ impl<'a> TestGenerator<'a> {
             hex_address_map: HashMap::new(),
             hex_address_counter: 0,
             code_path_map: HashMap::new(),
+            token_id_map: HashMap::new(),
             const_buffer: String::new(),
             step_buffer: String::new(),
         }
