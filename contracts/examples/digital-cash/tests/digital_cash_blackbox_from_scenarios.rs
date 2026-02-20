@@ -35,7 +35,7 @@ pub fn pay_fee_and_fund_esdt_single_scen_steps(world: &mut ScenarioWorld) {
         .from(ACC3_ADDRESS)
         .to(THE_DIGITAL_CASH_CONTRACT_ADDRESS)
         .typed(digital_cash_proxy::DigitalCashProxy)
-        .pay_fee_and_fund(ScenarioValueRaw::new("0xdb474a3a065d3f0c0a62ae680ef6435e48eb482899d2ae30ff7a3a4b0ef19c60"), 86_400_000u64)
+        .pay_fee_and_fund(ScenarioValueRaw::new("0xdb474a3a065d3f0c0a62ae680ef6435e48eb482899d2ae30ff7a3a4b0ef19c60"), TimestampMillis::new(86_400_000u64))
         .payment(Payment::try_new(CASHTOKEN_778899, 0, 3u64).unwrap())
         .payment(Payment::try_new(CASHTOKEN_112233, 0, 50u64).unwrap())
         .run();
@@ -141,7 +141,7 @@ pub fn pay_fee_and_fund_esdt_multiple_scen_steps(world: &mut ScenarioWorld) {
         .from(ACC3_ADDRESS)
         .to(THE_DIGITAL_CASH_CONTRACT_ADDRESS)
         .typed(digital_cash_proxy::DigitalCashProxy)
-        .pay_fee_and_fund(ScenarioValueRaw::new("0xdb474a3a065d3f0c0a62ae680ef6435e48eb482899d2ae30ff7a3a4b0ef19c60"), 86_400_000u64)
+        .pay_fee_and_fund(ScenarioValueRaw::new("0xdb474a3a065d3f0c0a62ae680ef6435e48eb482899d2ae30ff7a3a4b0ef19c60"), TimestampMillis::new(86_400_000u64))
         .payment(Payment::try_new(CASHTOKEN_445566, 0, 50u64).unwrap())
         .payment(Payment::try_new(CASHTOKEN_112233, 0, 50u64).unwrap())
         .run();
@@ -152,7 +152,7 @@ pub fn pay_fee_and_fund_esdt_multiple_scen_steps(world: &mut ScenarioWorld) {
         .from(ACC3_ADDRESS)
         .to(THE_DIGITAL_CASH_CONTRACT_ADDRESS)
         .typed(digital_cash_proxy::DigitalCashProxy)
-        .pay_fee_and_fund(ScenarioValueRaw::new("0xdb474a3a065d3f0c0a62ae680ef6435e48eb482899d2ae30ff7a3a4b0ef19c60"), 86_400_000u64)
+        .pay_fee_and_fund(ScenarioValueRaw::new("0xdb474a3a065d3f0c0a62ae680ef6435e48eb482899d2ae30ff7a3a4b0ef19c60"), TimestampMillis::new(86_400_000u64))
         .payment(Payment::try_new(CASHTOKEN_778899, 0, 6u64).unwrap())
         .payment(Payment::try_new(CASHTOKEN_778899, 0, 44u64).unwrap())
         .payment(Payment::try_new(CASHTOKEN_112233, 0, 50u64).unwrap())
@@ -181,7 +181,7 @@ pub fn fund_egld_and_esdt_scen_steps(world: &mut ScenarioWorld) {
         .from(ACC1_ADDRESS)
         .to(THE_DIGITAL_CASH_CONTRACT_ADDRESS)
         .typed(digital_cash_proxy::DigitalCashProxy)
-        .fund(ScenarioValueRaw::new("0xdb474a3a065d3f0c0a62ae680ef6435e48eb482899d2ae30ff7a3a4b0ef19c60"), 86_400_000u64)
+        .fund(ScenarioValueRaw::new("0xdb474a3a065d3f0c0a62ae680ef6435e48eb482899d2ae30ff7a3a4b0ef19c60"), TimestampMillis::new(86_400_000u64))
         .payment(Payment::try_new(TestTokenId::EGLD, 0, 1_000u64).unwrap())
         .run();
 
@@ -201,7 +201,7 @@ pub fn fund_egld_and_esdt_scen_steps(world: &mut ScenarioWorld) {
         .from(ACC1_ADDRESS)
         .to(THE_DIGITAL_CASH_CONTRACT_ADDRESS)
         .typed(digital_cash_proxy::DigitalCashProxy)
-        .fund(ScenarioValueRaw::new("0xdb474a3a065d3f0c0a62ae680ef6435e48eb482899d2ae30ff7a3a4b0ef19c60"), 86_399_000u64)
+        .fund(ScenarioValueRaw::new("0xdb474a3a065d3f0c0a62ae680ef6435e48eb482899d2ae30ff7a3a4b0ef19c60"), TimestampMillis::new(86_399_000u64))
         .payment(Payment::try_new(TestTokenId::EGLD, 0, 1_000u64).unwrap())
         .run();
 
@@ -227,7 +227,7 @@ pub fn fund_egld_and_esdt_scen_steps(world: &mut ScenarioWorld) {
         .from(ACC2_ADDRESS)
         .to(THE_DIGITAL_CASH_CONTRACT_ADDRESS)
         .typed(digital_cash_proxy::DigitalCashProxy)
-        .fund(ScenarioValueRaw::new("0x487bd4010b50c24a02018345fe5171edf4182e6294325382c75ef4c4409f01bd"), 86_400_000u64)
+        .fund(ScenarioValueRaw::new("0x487bd4010b50c24a02018345fe5171edf4182e6294325382c75ef4c4409f01bd"), TimestampMillis::new(86_400_000u64))
         .payment(Payment::try_new(CASHTOKEN_123456, 0, 50u64).unwrap())
         .run();
 
@@ -244,7 +244,7 @@ pub fn fund_egld_and_esdt_scen_steps(world: &mut ScenarioWorld) {
         .from(ACC3_ADDRESS)
         .to(THE_DIGITAL_CASH_CONTRACT_ADDRESS)
         .typed(digital_cash_proxy::DigitalCashProxy)
-        .fund(ScenarioValueRaw::new("0x487bd4010b50c24a02018345fe5171edf4182e6294325382c75ef4c4409f01bd"), 86_400_000u64)
+        .fund(ScenarioValueRaw::new("0x487bd4010b50c24a02018345fe5171edf4182e6294325382c75ef4c4409f01bd"), TimestampMillis::new(86_400_000u64))
         .payment(Payment::try_new(CASHTOKEN_112233, 0, 50u64).unwrap())
         .payment(Payment::try_new(CASHTOKEN_445566, 0, 50u64).unwrap())
         .payment(Payment::try_new(CASHTOKEN_778899, 0, 50u64).unwrap())
@@ -266,7 +266,7 @@ pub fn fund_egld_and_esdt_scen_steps(world: &mut ScenarioWorld) {
         .from(ACC3_ADDRESS)
         .to(THE_DIGITAL_CASH_CONTRACT_ADDRESS)
         .typed(digital_cash_proxy::DigitalCashProxy)
-        .fund(ScenarioValueRaw::new("0x885532043a061e0c779e4064b85193f72cffd22c5bcc208c209128e60f21bf0d"), 86_400_000u64)
+        .fund(ScenarioValueRaw::new("0x885532043a061e0c779e4064b85193f72cffd22c5bcc208c209128e60f21bf0d"), TimestampMillis::new(86_400_000u64))
         .payment(Payment::try_new(CASHTOKEN_112233, 0, 50u64).unwrap())
         .payment(Payment::try_new(CASHTOKEN_445566, 0, 50u64).unwrap())
         .payment(Payment::try_new(CASHTOKEN_778899, 0, 50u64).unwrap())
@@ -415,7 +415,7 @@ pub fn pay_fee_and_fund_egld_scen_steps(world: &mut ScenarioWorld) {
         .from(ACC3_ADDRESS)
         .to(THE_DIGITAL_CASH_CONTRACT_ADDRESS)
         .typed(digital_cash_proxy::DigitalCashProxy)
-        .pay_fee_and_fund(ScenarioValueRaw::new("0xdb474a3a065d3f0c0a62ae680ef6435e48eb482899d2ae30ff7a3a4b0ef19c60"), 86_400_000u64)
+        .pay_fee_and_fund(ScenarioValueRaw::new("0xdb474a3a065d3f0c0a62ae680ef6435e48eb482899d2ae30ff7a3a4b0ef19c60"), TimestampMillis::new(86_400_000u64))
         .payment(Payment::try_new(TestTokenId::EGLD, 0, 9u64).unwrap())
         .payment(Payment::try_new(TestTokenId::EGLD, 0, 1u64).unwrap())
         .run();
@@ -426,7 +426,7 @@ pub fn pay_fee_and_fund_egld_scen_steps(world: &mut ScenarioWorld) {
         .from(ACC3_ADDRESS)
         .to(THE_DIGITAL_CASH_CONTRACT_ADDRESS)
         .typed(digital_cash_proxy::DigitalCashProxy)
-        .pay_fee_and_fund(ScenarioValueRaw::new("0xdb474a3a065d3f0c0a62ae680ef6435e48eb482899d2ae30ff7a3a4b0ef19c60"), 86_400_000u64)
+        .pay_fee_and_fund(ScenarioValueRaw::new("0xdb474a3a065d3f0c0a62ae680ef6435e48eb482899d2ae30ff7a3a4b0ef19c60"), TimestampMillis::new(86_400_000u64))
         .payment(Payment::try_new(TestTokenId::EGLD, 0, 10u64).unwrap())
         .payment(Payment::try_new(TestTokenId::EGLD, 0, 990u64).unwrap())
         .run();

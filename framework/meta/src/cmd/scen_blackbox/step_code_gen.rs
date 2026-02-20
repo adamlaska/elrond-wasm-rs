@@ -5,8 +5,8 @@ use std::collections::BTreeMap;
 use multiversx_sc_scenario::scenario::model::{
     Account, AddressKey, AddressValue, BigUintValue, BytesKey, BytesValue, CheckAccount,
     CheckAccounts, CheckStateStep, CheckStorage, CheckStorageDetails, CheckValue, NewAddress,
-    ScCallStep, ScDeployStep, ScQueryStep, SetStateStep, Step, TxCall, TxDeploy, TxESDT,
-    TxExpect, TxQuery,
+    ScCallStep, ScDeployStep, ScQueryStep, SetStateStep, Step, TxCall, TxDeploy, TxESDT, TxExpect,
+    TxQuery,
 };
 use multiversx_sc_scenario::scenario_format::serde_raw::ValueSubTree;
 
@@ -317,9 +317,7 @@ impl<'a> TestGenerator<'a> {
         }
 
         // Strip "str:" prefix if present
-        let name = original_str
-            .strip_prefix("str:")
-            .unwrap_or(original_str);
+        let name = original_str.strip_prefix("str:").unwrap_or(original_str);
 
         // Generate constant name: "TOK-123456" -> "TOK_123456"
         let const_name = name.to_uppercase().replace('-', "_");
@@ -580,12 +578,19 @@ impl<'a> TestGenerator<'a> {
         s.replace('\\', "\\\\").replace('"', "\\\"")
     }
 
-    /// Formats an argument value based on the ABI type and the raw bytes.
+    /// Formats an argument value based on ABI type info and raw bytes.
     ///
     /// Uses ABI type information to generate idiomatic Rust literals where possible.
+    /// For types whose ABI name is ambiguous (e.g. time types all map to "u64"),
+    /// the Rust type name is checked instead.
     /// Falls back to `ScenarioValueRaw::new` for unrecognized types.
-    fn format_arg_value(&mut self, abi_type: &str, arg: &BytesValue) -> String {
-        match abi_type {
+    fn format_arg_value(
+        &mut self,
+        type_names: &multiversx_sc::abi::TypeNames,
+        arg: &BytesValue,
+    ) -> String {
+        // Then match on ABI type name for all other known types.
+        match type_names.abi.as_str() {
             "bool" => {
                 let is_true = arg.value.len() == 1 && arg.value[0] == 1;
                 if is_true {
@@ -595,13 +600,17 @@ impl<'a> TestGenerator<'a> {
                 }
             }
             "u8" | "u16" | "u32" | "u64" | "usize" | "BigUint" => {
-                num_format::format_unsigned(&arg.value, abi_type)
+                num_format::format_unsigned(&arg.value, &type_names.abi)
             }
             "i8" | "i16" | "i32" | "i64" | "isize" | "BigInt" => {
-                num_format::format_signed(&arg.value, abi_type)
+                num_format::format_signed(&arg.value, &type_names.abi)
             }
             "TokenIdentifier" | "EgldOrEsdtTokenIdentifier" | "TokenId" => {
                 self.format_token_id(arg)
+            }
+            "TimestampMillis" | "TimestampSeconds" | "DurationMillis" | "DurationSeconds" => {
+                let inner = num_format::format_unsigned(&arg.value, "u64");
+                format!("{}::new({})", type_names.abi, inner)
             }
             // TODO: add more type cases here
             _ => Self::format_value(&arg.original),
@@ -609,7 +618,10 @@ impl<'a> TestGenerator<'a> {
     }
 
     /// Looks up the ABI inputs for an endpoint by its scenario name.
-    fn find_endpoint_inputs(&self, endpoint_name: &str) -> Option<Vec<multiversx_sc::abi::InputAbi>> {
+    fn find_endpoint_inputs(
+        &self,
+        endpoint_name: &str,
+    ) -> Option<Vec<multiversx_sc::abi::InputAbi>> {
         self.abi
             .endpoints
             .iter()
@@ -631,7 +643,7 @@ impl<'a> TestGenerator<'a> {
         let mut result = Vec::with_capacity(args.len());
         for (i, arg) in args.iter().enumerate() {
             let formatted = if let Some(input) = inputs.and_then(|ins| ins.get(i)) {
-                self.format_arg_value(&input.type_names.abi, arg)
+                self.format_arg_value(&input.type_names, arg)
             } else {
                 Self::format_value(&arg.original)
             };
