@@ -9,7 +9,7 @@ use multiversx_sc_scenario::scenario::model::{
 };
 use multiversx_sc_scenario::scenario_format::serde_raw::ValueSubTree;
 
-use super::{scenario_loader::scenario_to_function_name, test_gen::TestGenerator};
+use super::{num_format, scenario_loader::scenario_to_function_name, test_gen::TestGenerator};
 
 impl<'a> TestGenerator<'a> {
     /// Generates code for a single step
@@ -169,12 +169,14 @@ impl<'a> TestGenerator<'a> {
         self.step_writeln(format!(".typed({})", proxy_type));
         self.step_write("        ");
 
+        let inputs = self.find_constructor_inputs();
+        let formatted_args = self.format_args(&tx.arguments, inputs);
         self.step_write(".init(");
-        for (i, arg) in tx.arguments.iter().enumerate() {
+        for (i, formatted) in formatted_args.iter().enumerate() {
             if i > 0 {
                 self.step_write(", ");
             }
-            self.step_write(Self::format_value(&arg.original));
+            self.step_write(formatted);
         }
         self.step_writeln(")");
         self.step_write("        ");
@@ -228,13 +230,15 @@ impl<'a> TestGenerator<'a> {
         self.step_write("        ");
 
         // Map the endpoint name from scenario to Rust method name
+        let inputs = self.find_endpoint_inputs(&tx.function);
+        let formatted_args = self.format_args(&tx.arguments, inputs);
         let rust_method_name = self.map_endpoint_name(&tx.function);
         self.step_write(format!(".{}(", rust_method_name));
-        for (i, arg) in tx.arguments.iter().enumerate() {
+        for (i, formatted) in formatted_args.iter().enumerate() {
             if i > 0 {
                 self.step_write(", ");
             }
-            self.step_write(Self::format_value(&arg.original));
+            self.step_write(formatted);
         }
         self.step_writeln(")");
         self.step_write("        ");
@@ -270,13 +274,15 @@ impl<'a> TestGenerator<'a> {
         self.step_write("        ");
 
         // Map the endpoint name from scenario to Rust method name
+        let inputs = self.find_endpoint_inputs(&tx.function);
+        let formatted_args = self.format_args(&tx.arguments, inputs);
         let rust_method_name = self.map_endpoint_name(&tx.function);
         self.step_write(format!(".{}(", rust_method_name));
-        for (i, arg) in tx.arguments.iter().enumerate() {
+        for (i, formatted) in formatted_args.iter().enumerate() {
             if i > 0 {
                 self.step_write(", ");
             }
-            self.step_write(Self::format_value(&arg.original));
+            self.step_write(formatted);
         }
         self.step_writeln(")");
         self.step_write("        ");
@@ -480,6 +486,63 @@ impl<'a> TestGenerator<'a> {
         s.replace('\\', "\\\\").replace('"', "\\\"")
     }
 
+    /// Formats an argument value based on the ABI type and the raw bytes.
+    ///
+    /// Uses ABI type information to generate idiomatic Rust literals where possible.
+    /// Falls back to `ScenarioValueRaw::new` for unrecognized types.
+    fn format_arg_value(abi_type: &str, arg: &BytesValue) -> String {
+        match abi_type {
+            "bool" => {
+                let is_true = arg.value.len() == 1 && arg.value[0] == 1;
+                if is_true {
+                    "true".to_string()
+                } else {
+                    "false".to_string()
+                }
+            }
+            "u8" | "u16" | "u32" | "u64" | "usize" | "BigUint" => {
+                num_format::format_unsigned(&arg.value, abi_type)
+            }
+            "i8" | "i16" | "i32" | "i64" | "isize" | "BigInt" => {
+                num_format::format_signed(&arg.value, abi_type)
+            }
+            // TODO: add more type cases here
+            _ => Self::format_value(&arg.original),
+        }
+    }
+
+    /// Looks up the ABI inputs for an endpoint by its scenario name.
+    fn find_endpoint_inputs(&self, endpoint_name: &str) -> Option<&[multiversx_sc::abi::InputAbi]> {
+        self.abi
+            .endpoints
+            .iter()
+            .find(|e| e.name == endpoint_name)
+            .map(|e| e.inputs.as_slice())
+    }
+
+    /// Looks up the ABI inputs for the constructor.
+    fn find_constructor_inputs(&self) -> Option<&[multiversx_sc::abi::InputAbi]> {
+        self.abi.constructors.first().map(|e| e.inputs.as_slice())
+    }
+
+    /// Formats a list of arguments, using ABI type info when available.
+    fn format_args(
+        &self,
+        args: &[BytesValue],
+        inputs: Option<&[multiversx_sc::abi::InputAbi]>,
+    ) -> Vec<String> {
+        args.iter()
+            .enumerate()
+            .map(|(i, arg)| {
+                if let Some(input) = inputs.and_then(|ins| ins.get(i)) {
+                    Self::format_arg_value(&input.type_names.abi, arg)
+                } else {
+                    Self::format_value(&arg.original)
+                }
+            })
+            .collect()
+    }
+
     /// Maps an endpoint name from the scenario (usually camelCase) to the Rust method name (snake_case)
     /// by looking it up in the contract ABI.
     fn map_endpoint_name(&self, scenario_endpoint_name: &str) -> String {
@@ -532,7 +595,7 @@ impl<'a> TestGenerator<'a> {
         };
 
         // Remove commas and underscores for parsing
-        let cleaned = num_str.replace(',', "").replace('_', "");
+        let cleaned = num_str.replace([',', '_'], "");
 
         // Nonces are always u64
         if cleaned.parse::<u64>().is_ok() {
@@ -549,7 +612,7 @@ impl<'a> TestGenerator<'a> {
         };
 
         // Remove commas and underscores for parsing
-        let cleaned = num_str.replace(',', "").replace('_', "");
+        let cleaned = num_str.replace([',', '_'], "");
 
         // Try to parse as u128 and choose appropriate type
         if let Ok(num_u128) = cleaned.parse::<u128>() {

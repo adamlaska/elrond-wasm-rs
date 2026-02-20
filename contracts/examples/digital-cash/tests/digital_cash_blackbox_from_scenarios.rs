@@ -30,7 +30,7 @@ pub fn pay_fee_and_fund_esdt_single_scen_steps(world: &mut ScenarioWorld) {
         .from(ACC3_ADDRESS)
         .to(THE_DIGITAL_CASH_CONTRACT_ADDRESS)
         .typed(digital_cash_proxy::DigitalCashProxy)
-        .pay_fee_and_fund(ScenarioValueRaw::new("0xdb474a3a065d3f0c0a62ae680ef6435e48eb482899d2ae30ff7a3a4b0ef19c60"), ScenarioValueRaw::new("86400_000"))
+        .pay_fee_and_fund(ScenarioValueRaw::new("0xdb474a3a065d3f0c0a62ae680ef6435e48eb482899d2ae30ff7a3a4b0ef19c60"), 86_400_000u64)
         .run();
 
     world.check_account(THE_DIGITAL_CASH_CONTRACT_ADDRESS)
@@ -130,7 +130,7 @@ pub fn pay_fee_and_fund_esdt_multiple_scen_steps(world: &mut ScenarioWorld) {
         .from(ACC3_ADDRESS)
         .to(THE_DIGITAL_CASH_CONTRACT_ADDRESS)
         .typed(digital_cash_proxy::DigitalCashProxy)
-        .pay_fee_and_fund(ScenarioValueRaw::new("0xdb474a3a065d3f0c0a62ae680ef6435e48eb482899d2ae30ff7a3a4b0ef19c60"), ScenarioValueRaw::new("86400_000"))
+        .pay_fee_and_fund(ScenarioValueRaw::new("0xdb474a3a065d3f0c0a62ae680ef6435e48eb482899d2ae30ff7a3a4b0ef19c60"), 86_400_000u64)
         .run();
 
     world
@@ -139,7 +139,7 @@ pub fn pay_fee_and_fund_esdt_multiple_scen_steps(world: &mut ScenarioWorld) {
         .from(ACC3_ADDRESS)
         .to(THE_DIGITAL_CASH_CONTRACT_ADDRESS)
         .typed(digital_cash_proxy::DigitalCashProxy)
-        .pay_fee_and_fund(ScenarioValueRaw::new("0xdb474a3a065d3f0c0a62ae680ef6435e48eb482899d2ae30ff7a3a4b0ef19c60"), ScenarioValueRaw::new("86400_000"))
+        .pay_fee_and_fund(ScenarioValueRaw::new("0xdb474a3a065d3f0c0a62ae680ef6435e48eb482899d2ae30ff7a3a4b0ef19c60"), 86_400_000u64)
         .run();
 
     world.check_account(THE_DIGITAL_CASH_CONTRACT_ADDRESS)
@@ -165,7 +165,7 @@ pub fn fund_egld_and_esdt_scen_steps(world: &mut ScenarioWorld) {
         .from(ACC1_ADDRESS)
         .to(THE_DIGITAL_CASH_CONTRACT_ADDRESS)
         .typed(digital_cash_proxy::DigitalCashProxy)
-        .fund(ScenarioValueRaw::new("0xdb474a3a065d3f0c0a62ae680ef6435e48eb482899d2ae30ff7a3a4b0ef19c60"), ScenarioValueRaw::new("86400_000"))
+        .fund(ScenarioValueRaw::new("0xdb474a3a065d3f0c0a62ae680ef6435e48eb482899d2ae30ff7a3a4b0ef19c60"), 86_400_000u64)
         .run();
 
     world
@@ -183,7 +183,7 @@ pub fn fund_egld_and_esdt_scen_steps(world: &mut ScenarioWorld) {
         .from(ACC1_ADDRESS)
         .to(THE_DIGITAL_CASH_CONTRACT_ADDRESS)
         .typed(digital_cash_proxy::DigitalCashProxy)
-        .fund(ScenarioValueRaw::new("0xdb474a3a065d3f0c0a62ae680ef6435e48eb482899d2ae30ff7a3a4b0ef19c60"), ScenarioValueRaw::new("86399_000"))
+        .fund(ScenarioValueRaw::new("0xdb474a3a065d3f0c0a62ae680ef6435e48eb482899d2ae30ff7a3a4b0ef19c60"), 86_399_000u64)
         .run();
 
     world.check_account(THE_DIGITAL_CASH_CONTRACT_ADDRESS)
@@ -207,7 +207,7 @@ pub fn fund_egld_and_esdt_scen_steps(world: &mut ScenarioWorld) {
         .from(ACC2_ADDRESS)
         .to(THE_DIGITAL_CASH_CONTRACT_ADDRESS)
         .typed(digital_cash_proxy::DigitalCashProxy)
-        .fund(ScenarioValueRaw::new("0x487bd4010b50c24a02018345fe5171edf4182e6294325382c75ef4c4409f01bd"), ScenarioValueRaw::new("86400_000"))
+        .fund(ScenarioValueRaw::new("0x487bd4010b50c24a02018345fe5171edf4182e6294325382c75ef4c4409f01bd"), 86_400_000u64)
         .run();
 
     world.check_account(THE_DIGITAL_CASH_CONTRACT_ADDRESS)
@@ -223,7 +223,7 @@ pub fn fund_egld_and_esdt_scen_steps(world: &mut ScenarioWorld) {
         .from(ACC3_ADDRESS)
         .to(THE_DIGITAL_CASH_CONTRACT_ADDRESS)
         .typed(digital_cash_proxy::DigitalCashProxy)
-        .fund(ScenarioValueRaw::new("0x487bd4010b50c24a02018345fe5171edf4182e6294325382c75ef4c4409f01bd"), ScenarioValueRaw::new("86400_000"))
+        .fund(ScenarioValueRaw::new("0x487bd4010b50c24a02018345fe5171edf4182e6294325382c75ef4c4409f01bd"), 86_400_000u64)
         .run();
 
     world
@@ -241,7 +241,7 @@ pub fn fund_egld_and_esdt_scen_steps(world: &mut ScenarioWorld) {
         .from(ACC3_ADDRESS)
         .to(THE_DIGITAL_CASH_CONTRACT_ADDRESS)
         .typed(digital_cash_proxy::DigitalCashProxy)
-        .fund(ScenarioValueRaw::new("0x885532043a061e0c779e4064b85193f72cffd22c5bcc208c209128e60f21bf0d"), ScenarioValueRaw::new("86400_000"))
+        .fund(ScenarioValueRaw::new("0x885532043a061e0c779e4064b85193f72cffd22c5bcc208c209128e60f21bf0d"), 86_400_000u64)
         .run();
 
     world.check_account(THE_DIGITAL_CASH_CONTRACT_ADDRESS)
@@ -387,7 +387,7 @@ pub fn pay_fee_and_fund_egld_scen_steps(world: &mut ScenarioWorld) {
         .from(ACC3_ADDRESS)
         .to(THE_DIGITAL_CASH_CONTRACT_ADDRESS)
         .typed(digital_cash_proxy::DigitalCashProxy)
-        .pay_fee_and_fund(ScenarioValueRaw::new("0xdb474a3a065d3f0c0a62ae680ef6435e48eb482899d2ae30ff7a3a4b0ef19c60"), ScenarioValueRaw::new("86400_000"))
+        .pay_fee_and_fund(ScenarioValueRaw::new("0xdb474a3a065d3f0c0a62ae680ef6435e48eb482899d2ae30ff7a3a4b0ef19c60"), 86_400_000u64)
         .run();
 
     world
@@ -396,7 +396,7 @@ pub fn pay_fee_and_fund_egld_scen_steps(world: &mut ScenarioWorld) {
         .from(ACC3_ADDRESS)
         .to(THE_DIGITAL_CASH_CONTRACT_ADDRESS)
         .typed(digital_cash_proxy::DigitalCashProxy)
-        .pay_fee_and_fund(ScenarioValueRaw::new("0xdb474a3a065d3f0c0a62ae680ef6435e48eb482899d2ae30ff7a3a4b0ef19c60"), ScenarioValueRaw::new("86400_000"))
+        .pay_fee_and_fund(ScenarioValueRaw::new("0xdb474a3a065d3f0c0a62ae680ef6435e48eb482899d2ae30ff7a3a4b0ef19c60"), 86_400_000u64)
         .run();
 
     world.check_account(THE_DIGITAL_CASH_CONTRACT_ADDRESS)
@@ -529,7 +529,7 @@ pub fn set_accounts_scen_steps(world: &mut ScenarioWorld) {
         .id("deploy")
         .from(DIGITAL_CASH_OWNER_ADDRESS_ADDRESS)
         .typed(digital_cash_proxy::DigitalCashProxy)
-        .init(ScenarioValueRaw::new("false"), ScenarioValueRaw::new("str:EGLD-000000"))
+        .init(false, ScenarioValueRaw::new("str:EGLD-000000"), ScenarioValueRaw::new("10"))
         .code(DIGITAL_CASH_CODE_PATH)
         .new_address(THE_DIGITAL_CASH_CONTRACT_ADDRESS)
         .run();
@@ -721,7 +721,7 @@ pub fn whitelist_blacklist_fee_tokens_scen_steps(world: &mut ScenarioWorld) {
         .from(DIGITAL_CASH_OWNER_ADDRESS_ADDRESS)
         .to(THE_DIGITAL_CASH_CONTRACT_ADDRESS)
         .typed(digital_cash_proxy::DigitalCashProxy)
-        .set_fee(ScenarioValueRaw::new("str:CASHTOKEN-778899"), ScenarioValueRaw::new("3"))
+        .set_fee(ScenarioValueRaw::new("str:CASHTOKEN-778899"), 3u64)
         .run();
 
     world
@@ -730,7 +730,7 @@ pub fn whitelist_blacklist_fee_tokens_scen_steps(world: &mut ScenarioWorld) {
         .from(DIGITAL_CASH_OWNER_ADDRESS_ADDRESS)
         .to(THE_DIGITAL_CASH_CONTRACT_ADDRESS)
         .typed(digital_cash_proxy::DigitalCashProxy)
-        .set_fee(ScenarioValueRaw::new("str:ESDT-778899"), ScenarioValueRaw::new("5"))
+        .set_fee(ScenarioValueRaw::new("str:ESDT-778899"), 5u64)
         .run();
 
     world
@@ -739,7 +739,7 @@ pub fn whitelist_blacklist_fee_tokens_scen_steps(world: &mut ScenarioWorld) {
         .from(DIGITAL_CASH_OWNER_ADDRESS_ADDRESS)
         .to(THE_DIGITAL_CASH_CONTRACT_ADDRESS)
         .typed(digital_cash_proxy::DigitalCashProxy)
-        .set_fee(ScenarioValueRaw::new("str:ESDT-778899"), ScenarioValueRaw::new("0"))
+        .set_fee(ScenarioValueRaw::new("str:ESDT-778899"), 0u64)
         .run();
 
     world.check_account(THE_DIGITAL_CASH_CONTRACT_ADDRESS)

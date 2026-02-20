@@ -1,3 +1,4 @@
+mod num_format;
 mod scenario_loader;
 mod step_code_gen;
 mod test_gen;

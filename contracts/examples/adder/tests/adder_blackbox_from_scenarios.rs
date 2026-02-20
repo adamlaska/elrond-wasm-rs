@@ -11,7 +11,11 @@ const OWNER_ADDRESS: TestAddress = TestAddress::new("owner");
 const ADDER_ADDRESS: TestSCAddress = TestSCAddress::new("adder");
 
 fn world() -> ScenarioWorld {
-    todo!()
+    let mut blockchain = ScenarioWorld::new().executor_config(ExecutorConfig::full_suite());
+
+    blockchain.set_current_dir_from_workspace("contracts/examples/adder");
+    blockchain.register_contract(ADDER_CODE_PATH, adder::ContractBuilder);
+    blockchain
 }
 
 #[test]
@@ -30,7 +34,7 @@ pub fn interactor_trace_scen_steps(world: &mut ScenarioWorld) {
         .tx()
         .from(ADDRESS_HEX_1)
         .typed(adder_proxy::AdderProxy)
-        .init(ScenarioValueRaw::new("0x00"))
+        .init(0u64)
         .code(ADDER_CODE_PATH)
         .new_address(ADDRESS_HEX_2)
         .run();
@@ -40,7 +44,7 @@ pub fn interactor_trace_scen_steps(world: &mut ScenarioWorld) {
         .from(ADDRESS_HEX_1)
         .to(ADDRESS_HEX_2)
         .typed(adder_proxy::AdderProxy)
-        .add(ScenarioValueRaw::new("0x07"))
+        .add(7u64)
         .run();
 
     world
@@ -48,7 +52,7 @@ pub fn interactor_trace_scen_steps(world: &mut ScenarioWorld) {
         .from(ADDRESS_HEX_1)
         .to(ADDRESS_HEX_2)
         .typed(adder_proxy::AdderProxy)
-        .add(ScenarioValueRaw::new("0x05"))
+        .add(5u64)
         .run();
 
 }
@@ -70,7 +74,7 @@ pub fn adder_scen_steps(world: &mut ScenarioWorld) {
         .id("1")
         .from(OWNER_ADDRESS)
         .typed(adder_proxy::AdderProxy)
-        .init(ScenarioValueRaw::new("5"))
+        .init(5u64)
         .code(ADDER_CODE_PATH)
         .new_address(ADDER_ADDRESS)
         .run();
@@ -90,7 +94,7 @@ pub fn adder_scen_steps(world: &mut ScenarioWorld) {
         .from(OWNER_ADDRESS)
         .to(ADDER_ADDRESS)
         .typed(adder_proxy::AdderProxy)
-        .add(ScenarioValueRaw::new("3"))
+        .add(3u64)
         .run();
 
     world.check_account(ADDER_ADDRESS)
