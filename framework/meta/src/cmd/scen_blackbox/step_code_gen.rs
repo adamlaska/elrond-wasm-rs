@@ -171,7 +171,7 @@ impl<'a> TestGenerator<'a> {
         self.step_write("        ");
 
         let inputs = self.find_constructor_inputs();
-        let formatted_args = self.format_args(&tx.arguments, inputs);
+        let formatted_args = self.format_args(&tx.arguments, inputs.as_deref());
         self.step_write(".init(");
         for (i, formatted) in formatted_args.iter().enumerate() {
             if i > 0 {
@@ -235,7 +235,7 @@ impl<'a> TestGenerator<'a> {
 
         // Map the endpoint name from scenario to Rust method name
         let inputs = self.find_endpoint_inputs(&tx.function);
-        let formatted_args = self.format_args(&tx.arguments, inputs);
+        let formatted_args = self.format_args(&tx.arguments, inputs.as_deref());
         let rust_method_name = self.map_endpoint_name(&tx.function);
         self.step_write(format!(".{}(", rust_method_name));
         for (i, formatted) in formatted_args.iter().enumerate() {
@@ -369,7 +369,7 @@ impl<'a> TestGenerator<'a> {
 
         // Map the endpoint name from scenario to Rust method name
         let inputs = self.find_endpoint_inputs(&tx.function);
-        let formatted_args = self.format_args(&tx.arguments, inputs);
+        let formatted_args = self.format_args(&tx.arguments, inputs.as_deref());
         let rust_method_name = self.map_endpoint_name(&tx.function);
         self.step_write(format!(".{}(", rust_method_name));
         for (i, formatted) in formatted_args.iter().enumerate() {
@@ -584,7 +584,7 @@ impl<'a> TestGenerator<'a> {
     ///
     /// Uses ABI type information to generate idiomatic Rust literals where possible.
     /// Falls back to `ScenarioValueRaw::new` for unrecognized types.
-    fn format_arg_value(abi_type: &str, arg: &BytesValue) -> String {
+    fn format_arg_value(&mut self, abi_type: &str, arg: &BytesValue) -> String {
         match abi_type {
             "bool" => {
                 let is_true = arg.value.len() == 1 && arg.value[0] == 1;
@@ -600,41 +600,44 @@ impl<'a> TestGenerator<'a> {
             "i8" | "i16" | "i32" | "i64" | "isize" | "BigInt" => {
                 num_format::format_signed(&arg.value, abi_type)
             }
+            "TokenIdentifier" | "EgldOrEsdtTokenIdentifier" | "TokenId" => {
+                self.format_token_id(arg)
+            }
             // TODO: add more type cases here
             _ => Self::format_value(&arg.original),
         }
     }
 
     /// Looks up the ABI inputs for an endpoint by its scenario name.
-    fn find_endpoint_inputs(&self, endpoint_name: &str) -> Option<&[multiversx_sc::abi::InputAbi]> {
+    fn find_endpoint_inputs(&self, endpoint_name: &str) -> Option<Vec<multiversx_sc::abi::InputAbi>> {
         self.abi
             .endpoints
             .iter()
             .find(|e| e.name == endpoint_name)
-            .map(|e| e.inputs.as_slice())
+            .map(|e| e.inputs.clone())
     }
 
     /// Looks up the ABI inputs for the constructor.
-    fn find_constructor_inputs(&self) -> Option<&[multiversx_sc::abi::InputAbi]> {
-        self.abi.constructors.first().map(|e| e.inputs.as_slice())
+    fn find_constructor_inputs(&self) -> Option<Vec<multiversx_sc::abi::InputAbi>> {
+        self.abi.constructors.first().map(|e| e.inputs.clone())
     }
 
     /// Formats a list of arguments, using ABI type info when available.
     fn format_args(
-        &self,
+        &mut self,
         args: &[BytesValue],
         inputs: Option<&[multiversx_sc::abi::InputAbi]>,
     ) -> Vec<String> {
-        args.iter()
-            .enumerate()
-            .map(|(i, arg)| {
-                if let Some(input) = inputs.and_then(|ins| ins.get(i)) {
-                    Self::format_arg_value(&input.type_names.abi, arg)
-                } else {
-                    Self::format_value(&arg.original)
-                }
-            })
-            .collect()
+        let mut result = Vec::with_capacity(args.len());
+        for (i, arg) in args.iter().enumerate() {
+            let formatted = if let Some(input) = inputs.and_then(|ins| ins.get(i)) {
+                self.format_arg_value(&input.type_names.abi, arg)
+            } else {
+                Self::format_value(&arg.original)
+            };
+            result.push(formatted);
+        }
+        result
     }
 
     /// Maps an endpoint name from the scenario (usually camelCase) to the Rust method name (snake_case)

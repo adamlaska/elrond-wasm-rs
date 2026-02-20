@@ -14,6 +14,7 @@ const DIGITAL_CASH_OWNER_ADDRESS_ADDRESS: TestAddress = TestAddress::new("digita
 const CASHTOKEN_445566: TestTokenId = TestTokenId::new("CASHTOKEN-445566");
 const CASHTOKEN_123456: TestTokenId = TestTokenId::new("CASHTOKEN-123456");
 const DIGITAL_CASH_CODE_PATH: MxscPath = MxscPath::new("output/digital-cash.mxsc.json");
+const ESDT_778899: TestTokenId = TestTokenId::new("ESDT-778899");
 
 fn world() -> ScenarioWorld {
     todo!()
@@ -752,7 +753,7 @@ pub fn whitelist_blacklist_fee_tokens_scen_steps(world: &mut ScenarioWorld) {
         .from(DIGITAL_CASH_OWNER_ADDRESS_ADDRESS)
         .to(THE_DIGITAL_CASH_CONTRACT_ADDRESS)
         .typed(digital_cash_proxy::DigitalCashProxy)
-        .set_fee(ScenarioValueRaw::new("str:CASHTOKEN-778899"), 3u64)
+        .set_fee(CASHTOKEN_778899, 3u64)
         .run();
 
     world
@@ -761,7 +762,7 @@ pub fn whitelist_blacklist_fee_tokens_scen_steps(world: &mut ScenarioWorld) {
         .from(DIGITAL_CASH_OWNER_ADDRESS_ADDRESS)
         .to(THE_DIGITAL_CASH_CONTRACT_ADDRESS)
         .typed(digital_cash_proxy::DigitalCashProxy)
-        .set_fee(ScenarioValueRaw::new("str:ESDT-778899"), 5u64)
+        .set_fee(ESDT_778899, 5u64)
         .run();
 
     world
@@ -770,7 +771,7 @@ pub fn whitelist_blacklist_fee_tokens_scen_steps(world: &mut ScenarioWorld) {
         .from(DIGITAL_CASH_OWNER_ADDRESS_ADDRESS)
         .to(THE_DIGITAL_CASH_CONTRACT_ADDRESS)
         .typed(digital_cash_proxy::DigitalCashProxy)
-        .set_fee(ScenarioValueRaw::new("str:ESDT-778899"), 0u64)
+        .set_fee(ESDT_778899, 0u64)
         .run();
 
     world.check_account(THE_DIGITAL_CASH_CONTRACT_ADDRESS)
