@@ -20,36 +20,16 @@ impl<'a> TestGenerator<'a> {
                 self.generate_external_steps(&step_data.path, step_data.comment.as_deref());
             }
             Step::SetState(set_state) => {
-                self.generate_set_state(
-                    set_state.comment.as_deref(),
-                    &set_state.accounts,
-                    &set_state.new_addresses,
-                    set_state.current_block_info.as_ref().as_ref(),
-                );
+                self.generate_set_state(set_state);
             }
             Step::ScDeploy(sc_deploy) => {
-                self.generate_sc_deploy(
-                    sc_deploy.tx_id.as_ref(),
-                    sc_deploy.comment.as_deref(),
-                    &sc_deploy.tx,
-                    sc_deploy.expect.as_ref(),
-                );
+                self.generate_sc_deploy(sc_deploy);
             }
             Step::ScCall(sc_call) => {
-                self.generate_sc_call(
-                    sc_call.tx_id.as_ref(),
-                    sc_call.comment.as_deref(),
-                    &sc_call.tx,
-                    sc_call.expect.as_ref(),
-                );
+                self.generate_sc_call(sc_call);
             }
             Step::ScQuery(sc_query) => {
-                self.generate_sc_query(
-                    sc_query.tx_id.as_ref(),
-                    sc_query.comment.as_deref(),
-                    &sc_query.tx,
-                    sc_query.expect.as_ref(),
-                );
+                self.generate_sc_query(sc_query);
             }
             Step::CheckState(check_state) => {
                 self.generate_check_state(check_state.comment.as_deref(), &check_state.accounts);
@@ -82,24 +62,18 @@ impl<'a> TestGenerator<'a> {
         self.step_writeln("");
     }
 
-    fn generate_set_state(
-        &mut self,
-        comment: Option<&str>,
-        accounts: &std::collections::BTreeMap<AddressKey, Account>,
-        new_addresses: &[NewAddress],
-        current_block_info: Option<&BlockInfo>,
-    ) {
-        if let Some(comment_text) = comment {
+    fn generate_set_state(&mut self, set_state: &SetStateStep) {
+        if let Some(comment_text) = &set_state.comment {
             self.step_writeln(format!("    // {}", comment_text));
         }
 
         // Generate current block info
-        if let Some(block_info) = current_block_info {
+        if let Some(block_info) = set_state.current_block_info.as_ref() {
             self.generate_block_info(block_info);
         }
 
         // Generate account setup
-        for (address_key, account) in accounts {
+        for (address_key, account) in &set_state.accounts {
             let address_expr = self.format_address(&address_key.original);
 
             // Check if we need to set anything
@@ -148,7 +122,7 @@ impl<'a> TestGenerator<'a> {
         }
 
         // Store new addresses for later use in deploy steps
-        for new_addr in new_addresses {
+        for new_addr in &set_state.new_addresses {
             let creator_key = new_addr.creator_address.original.to_concatenated_string();
             let new_address_key = new_addr.new_address.original.to_concatenated_string();
             self.new_address_map.insert(creator_key, new_address_key);
@@ -196,21 +170,17 @@ impl<'a> TestGenerator<'a> {
         }
     }
 
-    fn generate_sc_deploy(
-        &mut self,
-        id: Option<&String>,
-        comment: Option<&str>,
-        tx: &TxDeploy,
-        expect: Option<&TxExpect>,
-    ) {
-        if let Some(comment_text) = comment {
+    fn generate_sc_deploy(&mut self, sc_deploy: &ScDeployStep) {
+        let tx = &sc_deploy.tx;
+
+        if let Some(comment_text) = &sc_deploy.comment {
             self.step_writeln(format!("    // {}", comment_text));
         }
 
         self.step_writeln("    world");
         self.step_writeln("        .tx()");
 
-        if let Some(id_val) = id {
+        if let Some(id_val) = &sc_deploy.tx_id {
             self.step_writeln(format!("        .id(\"{}\")", id_val));
         }
 
@@ -252,27 +222,23 @@ impl<'a> TestGenerator<'a> {
             self.step_write("        ");
         }
 
-        self.generate_expect_error(expect);
+        self.generate_expect_error(sc_deploy.expect.as_ref());
 
         self.step_writeln(".run();");
         self.step_writeln("");
     }
 
-    fn generate_sc_call(
-        &mut self,
-        id: Option<&String>,
-        comment: Option<&str>,
-        tx: &TxCall,
-        expect: Option<&TxExpect>,
-    ) {
-        if let Some(comment_text) = comment {
+    fn generate_sc_call(&mut self, sc_call: &ScCallStep) {
+        let tx = &sc_call.tx;
+
+        if let Some(comment_text) = &sc_call.comment {
             self.step_writeln(format!("    // {}", comment_text));
         }
 
         self.step_writeln("    world");
         self.step_writeln("        .tx()");
 
-        if let Some(id_val) = id {
+        if let Some(id_val) = &sc_call.tx_id {
             self.step_writeln(format!("        .id(\"{}\")", id_val));
         }
 
@@ -304,7 +270,7 @@ impl<'a> TestGenerator<'a> {
         // Generate payments
         self.generate_payments(&tx.egld_value, &tx.esdt_value);
 
-        self.generate_expect_error(expect);
+        self.generate_expect_error(sc_call.expect.as_ref());
 
         self.step_writeln(".run();");
         self.step_writeln("");
@@ -511,21 +477,18 @@ impl<'a> TestGenerator<'a> {
         num_format::format_unsigned(&bytes, "BigUint")
     }
 
-    fn generate_sc_query(
-        &mut self,
-        id: Option<&String>,
-        comment: Option<&str>,
-        tx: &TxQuery,
-        expect: Option<&TxExpect>,
-    ) {
-        if let Some(comment_text) = comment {
+    fn generate_sc_query(&mut self, sc_query: &ScQueryStep) {
+        let tx = &sc_query.tx;
+        let expect = sc_query.expect.as_ref();
+
+        if let Some(comment_text) = &sc_query.comment {
             self.step_writeln(format!("    // {}", comment_text));
         }
 
         self.step_writeln("    world");
         self.step_writeln("        .query()");
 
-        if let Some(id_val) = id {
+        if let Some(id_val) = &sc_query.tx_id {
             self.step_writeln(format!("        .id(\"{}\")", id_val));
         }
 
