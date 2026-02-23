@@ -148,3 +148,85 @@ multi_value_impls! {
     (MultiValue15 15 0 T0 1 T1 2 T2 3 T3 4 T4 5 T5 6 T6 7 T7 8 T8 9 T9 10 T10 11 T11 12 T12 13 T13 14 T14)
     (MultiValue16 16 0 T0 1 T1 2 T2 3 T3 4 T4 5 T5 6 T6 7 T7 8 T8 9 T9 10 T10 11 T11 12 T12 13 T13 14 T14 15 T15)
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn multi_value2_from_tuple() {
+        let mv = MultiValue2::from((1u32, 2u64));
+        assert_eq!(mv.into_tuple(), (1u32, 2u64));
+    }
+
+    #[test]
+    fn multi_value2_as_tuple() {
+        let mv = MultiValue2::from((10i32, "hello"));
+        assert_eq!(mv.as_tuple(), &(10i32, "hello"));
+    }
+
+    #[test]
+    fn multi_value3_from_tuple() {
+        let mv = MultiValue3::from((1u8, 2u16, 3u32));
+        assert_eq!(mv.into_tuple(), (1u8, 2u16, 3u32));
+    }
+
+    #[test]
+    fn multi_value3_as_tuple() {
+        let mv = MultiValue3::from((true, 42u64, false));
+        assert_eq!(mv.as_tuple(), &(true, 42u64, false));
+    }
+
+    #[test]
+    fn multi_value4_round_trip() {
+        let original = (1u8, 2u16, 3u32, 4u64);
+        let mv = MultiValue4::from(original);
+        assert_eq!(mv.into_tuple(), original);
+    }
+
+    #[test]
+    fn multi_value5_round_trip() {
+        let original = (10u8, 20u16, 30u32, 40u64, true);
+        let mv = MultiValue5::from(original);
+        assert_eq!(mv.into_tuple(), original);
+    }
+
+    #[test]
+    fn multi_value2_clone() {
+        let mv = MultiValue2::from((42u32, 99u64));
+        let mv_clone = mv.clone();
+        assert_eq!(mv, mv_clone);
+    }
+
+    #[test]
+    fn multi_value2_debug() {
+        let mv = MultiValue2::from((1u32, 2u32));
+        let debug_str = alloc::format!("{:?}", mv);
+        assert!(debug_str.contains("MultiValue2"));
+    }
+
+    #[test]
+    fn multi_value2_eq() {
+        let mv1 = MultiValue2::from((1u32, 2u32));
+        let mv2 = MultiValue2::from((1u32, 2u32));
+        let mv3 = MultiValue2::from((1u32, 3u32));
+        assert_eq!(mv1, mv2);
+        assert_ne!(mv1, mv3);
+    }
+
+    #[test]
+    fn multi_value_mixed_types() {
+        let mv = MultiValue3::from((true, 255u8, 1_000_000u64));
+        let (a, b, c) = mv.into_tuple();
+        assert!(a);
+        assert_eq!(b, 255u8);
+        assert_eq!(c, 1_000_000u64);
+    }
+
+    #[test]
+    fn multi_value11_round_trip() {
+        let original = (0u8, 1u8, 2u8, 3u8, 4u8, 5u8, 6u8, 7u8, 8u8, 9u8, 10u8);
+        let mv = MultiValue11::from(original);
+        assert_eq!(mv.into_tuple(), original);
+    }
+}
