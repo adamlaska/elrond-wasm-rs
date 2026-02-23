@@ -21,7 +21,6 @@ const CASHTOKEN_123456: TestTokenId = TestTokenId::new("CASHTOKEN-123456");
 const H256_6: H256 = H256::from_hex("287bd4010b50c24a02018345fe5171edf4182e6294325382c75ef4c4409f01bd");
 const H256_7: H256 = H256::from_hex("d0474a3a065d3f0c0a62ae680ef6435e48eb482899d2ae30ff7a3a4b0ef19c60");
 const H256_8: H256 = H256::from_hex("805532043a061e0c779e4064b85193f72cffd22c5bcc208c209128e60f21bf0d");
-const EGLD_000000: TestTokenId = TestTokenId::new("EGLD-000000");
 const DIGITAL_CASH_CODE_PATH: MxscPath = MxscPath::new("output/digital-cash.mxsc.json");
 const H256_9: H256 = H256::from_hex("e808c2baab2a20b612f1351da5945c52c60f5321c6cde572149db90c9e8fbfc7");
 const H256_10: H256 = H256::from_hex("558fd9b0dd9fed2d3bed883d3b92907743362c56b9728392f84b261f1cc5ae0a");
@@ -84,7 +83,7 @@ pub fn forward_scen_steps(world: &mut ScenarioWorld) {
         .to(THE_DIGITAL_CASH_CONTRACT_ADDRESS)
         .typed(digital_cash_proxy::DigitalCashProxy)
         .deposit_fees(H256_2)
-        .payment(Payment::try_new(TestTokenId::EGLD, 0, 1_000u64).unwrap())
+        .payment(Payment::try_new(TestTokenId::EGLD_000000, 0, 1_000u64).unwrap())
         .run();
 
     world
@@ -103,7 +102,7 @@ pub fn forward_scen_steps(world: &mut ScenarioWorld) {
         .to(THE_DIGITAL_CASH_CONTRACT_ADDRESS)
         .typed(digital_cash_proxy::DigitalCashProxy)
         .deposit_fees(H256_3)
-        .payment(Payment::try_new(TestTokenId::EGLD, 0, 500u64).unwrap())
+        .payment(Payment::try_new(TestTokenId::EGLD_000000, 0, 500u64).unwrap())
         .run();
 
     world
@@ -113,7 +112,7 @@ pub fn forward_scen_steps(world: &mut ScenarioWorld) {
         .to(THE_DIGITAL_CASH_CONTRACT_ADDRESS)
         .typed(digital_cash_proxy::DigitalCashProxy)
         .forward(H256_4, H256_4, ScenarioValueRaw::new("0x1ac4f6d4d45836d97ffeda83a66aaea7631a3bb3d4063421ccb2b9de9485bdb4c9bd6e44e003f6a9c9eb74379467238204ff579471d203b1878c3f1530592a02"))
-        .payment(Payment::try_new(TestTokenId::EGLD, 0, 500u64).unwrap())
+        .payment(Payment::try_new(TestTokenId::EGLD_000000, 0, 500u64).unwrap())
         .run();
 
     world
@@ -123,7 +122,7 @@ pub fn forward_scen_steps(world: &mut ScenarioWorld) {
         .to(THE_DIGITAL_CASH_CONTRACT_ADDRESS)
         .typed(digital_cash_proxy::DigitalCashProxy)
         .forward(H256_4, H256_3, ScenarioValueRaw::new("0x1ac4f6d4d45836d97ffeda83a66aaea7631a3bb3d4063421ccb2b9de9485bdb4c9bd6e44e003f6a9c9eb74379467238204ff579471d203b1878c3f1530592a02"))
-        .payment(Payment::try_new(TestTokenId::EGLD, 0, 500u64).unwrap())
+        .payment(Payment::try_new(TestTokenId::EGLD_000000, 0, 500u64).unwrap())
         .run();
 
     world.check_account(THE_DIGITAL_CASH_CONTRACT_ADDRESS)
@@ -193,7 +192,7 @@ pub fn fund_egld_and_esdt_scen_steps(world: &mut ScenarioWorld) {
         .to(THE_DIGITAL_CASH_CONTRACT_ADDRESS)
         .typed(digital_cash_proxy::DigitalCashProxy)
         .fund(H256_1, TimestampMillis::new(86_400_000u64))
-        .payment(Payment::try_new(TestTokenId::EGLD, 0, 1_000u64).unwrap())
+        .payment(Payment::try_new(TestTokenId::EGLD_000000, 0, 1_000u64).unwrap())
         .run();
 
     world
@@ -203,7 +202,7 @@ pub fn fund_egld_and_esdt_scen_steps(world: &mut ScenarioWorld) {
         .to(THE_DIGITAL_CASH_CONTRACT_ADDRESS)
         .typed(digital_cash_proxy::DigitalCashProxy)
         .deposit_fees(H256_1)
-        .payment(Payment::try_new(TestTokenId::EGLD, 0, 1_000u64).unwrap())
+        .payment(Payment::try_new(TestTokenId::EGLD_000000, 0, 1_000u64).unwrap())
         .run();
 
     world
@@ -213,7 +212,7 @@ pub fn fund_egld_and_esdt_scen_steps(world: &mut ScenarioWorld) {
         .to(THE_DIGITAL_CASH_CONTRACT_ADDRESS)
         .typed(digital_cash_proxy::DigitalCashProxy)
         .fund(H256_1, TimestampMillis::new(86_399_000u64))
-        .payment(Payment::try_new(TestTokenId::EGLD, 0, 1_000u64).unwrap())
+        .payment(Payment::try_new(TestTokenId::EGLD_000000, 0, 1_000u64).unwrap())
         .run();
 
     world.check_account(THE_DIGITAL_CASH_CONTRACT_ADDRESS)
@@ -229,7 +228,7 @@ pub fn fund_egld_and_esdt_scen_steps(world: &mut ScenarioWorld) {
         .to(THE_DIGITAL_CASH_CONTRACT_ADDRESS)
         .typed(digital_cash_proxy::DigitalCashProxy)
         .deposit_fees(H256_5)
-        .payment(Payment::try_new(TestTokenId::EGLD, 0, 1_000u64).unwrap())
+        .payment(Payment::try_new(TestTokenId::EGLD_000000, 0, 1_000u64).unwrap())
         .run();
 
     world
@@ -268,7 +267,7 @@ pub fn fund_egld_and_esdt_scen_steps(world: &mut ScenarioWorld) {
         .to(THE_DIGITAL_CASH_CONTRACT_ADDRESS)
         .typed(digital_cash_proxy::DigitalCashProxy)
         .deposit_fees(H256_4)
-        .payment(Payment::try_new(TestTokenId::EGLD, 0, 1_000u64).unwrap())
+        .payment(Payment::try_new(TestTokenId::EGLD_000000, 0, 1_000u64).unwrap())
         .run();
 
     world
@@ -427,8 +426,8 @@ pub fn pay_fee_and_fund_egld_scen_steps(world: &mut ScenarioWorld) {
         .to(THE_DIGITAL_CASH_CONTRACT_ADDRESS)
         .typed(digital_cash_proxy::DigitalCashProxy)
         .pay_fee_and_fund(H256_1, TimestampMillis::new(86_400_000u64))
-        .payment(Payment::try_new(TestTokenId::EGLD, 0, 9u64).unwrap())
-        .payment(Payment::try_new(TestTokenId::EGLD, 0, 1u64).unwrap())
+        .payment(Payment::try_new(TestTokenId::EGLD_000000, 0, 9u64).unwrap())
+        .payment(Payment::try_new(TestTokenId::EGLD_000000, 0, 1u64).unwrap())
         .run();
 
     world
@@ -438,8 +437,8 @@ pub fn pay_fee_and_fund_egld_scen_steps(world: &mut ScenarioWorld) {
         .to(THE_DIGITAL_CASH_CONTRACT_ADDRESS)
         .typed(digital_cash_proxy::DigitalCashProxy)
         .pay_fee_and_fund(H256_1, TimestampMillis::new(86_400_000u64))
-        .payment(Payment::try_new(TestTokenId::EGLD, 0, 10u64).unwrap())
-        .payment(Payment::try_new(TestTokenId::EGLD, 0, 990u64).unwrap())
+        .payment(Payment::try_new(TestTokenId::EGLD_000000, 0, 10u64).unwrap())
+        .payment(Payment::try_new(TestTokenId::EGLD_000000, 0, 990u64).unwrap())
         .run();
 
     world.check_account(THE_DIGITAL_CASH_CONTRACT_ADDRESS)
@@ -572,7 +571,7 @@ pub fn set_accounts_scen_steps(world: &mut ScenarioWorld) {
         .id("deploy")
         .from(DIGITAL_CASH_OWNER_ADDRESS_ADDRESS)
         .typed(digital_cash_proxy::DigitalCashProxy)
-        .init(false, MultiValueVec::from(vec![MultiValue2::new(EGLD_000000, 10u64)]))
+        .init(false, MultiValueVec::from(vec![MultiValue2::new(TestTokenId::EGLD_000000, 10u64)]))
         .code(DIGITAL_CASH_CODE_PATH)
         .new_address(THE_DIGITAL_CASH_CONTRACT_ADDRESS)
         .run();

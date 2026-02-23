@@ -32,7 +32,7 @@ impl<'a> TestTokenId<'a> {
     }
 
     /// A constant representing the EGLD-000000 token identifier.
-    pub const EGLD: TestTokenId<'static> = TestTokenId::new(EGLD_000000_TOKEN_IDENTIFIER);
+    pub const EGLD_000000: TestTokenId<'static> = TestTokenId::new(EGLD_000000_TOKEN_IDENTIFIER);
 
     /// Evaluates the test token identifier to a Mandos (scenario) expression string with the "str:" prefix.
     #[cfg(feature = "alloc")]

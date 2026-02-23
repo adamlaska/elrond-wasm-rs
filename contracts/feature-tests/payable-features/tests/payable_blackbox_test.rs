@@ -112,13 +112,13 @@ fn payable_all_blackbox_egld() {
         .to(PAYABLE_FEATURES_ADDRESS)
         .typed(payable_features_proxy::PayableFeaturesProxy)
         .payable_all()
-        .payment((TestTokenId::EGLD, 0, AMOUNT_100))
+        .payment((TestTokenId::EGLD_000000, 0, AMOUNT_100))
         .returns(ReturnsResultUnmanaged)
         .run();
 
     assert_eq!(
         result,
-        vec![Payment::try_new(TestTokenId::EGLD, 0, 100u64).unwrap()]
+        vec![Payment::try_new(TestTokenId::EGLD_000000, 0, 100u64).unwrap()]
     );
 }
 
@@ -133,16 +133,16 @@ fn payable_all_blackbox_egld_2x() {
         .to(PAYABLE_FEATURES_ADDRESS)
         .typed(payable_features_proxy::PayableFeaturesProxy)
         .payable_all()
-        .payment((TestTokenId::EGLD, 0, AMOUNT_100))
-        .payment((TestTokenId::EGLD, 0, AMOUNT_400))
+        .payment((TestTokenId::EGLD_000000, 0, AMOUNT_100))
+        .payment((TestTokenId::EGLD_000000, 0, AMOUNT_400))
         .returns(ReturnsResultUnmanaged)
         .run();
 
     assert_eq!(
         result,
         vec![
-            Payment::new(TestTokenId::EGLD, 0, AMOUNT_100),
-            Payment::new(TestTokenId::EGLD, 0, AMOUNT_400),
+            Payment::new(TestTokenId::EGLD_000000, 0, AMOUNT_100),
+            Payment::new(TestTokenId::EGLD_000000, 0, AMOUNT_400),
         ]
     );
 }

@@ -276,7 +276,7 @@ impl<'a> TestGenerator<'a> {
         if egld_value.value > BigUint::from(0u32) {
             let amount = Self::format_biguint_value(&egld_value.value);
             self.step_writeln(format!(
-                ".payment(Payment::try_new(TestTokenId::EGLD, 0, {}).unwrap())",
+                ".payment(Payment::try_new(TestTokenId::EGLD_000000, 0, {}).unwrap())",
                 amount
             ));
             self.step_write("        ");
@@ -290,7 +290,7 @@ impl<'a> TestGenerator<'a> {
 
         if esdt.is_egld() {
             self.step_writeln(format!(
-                ".payment(Payment::try_new(TestTokenId::EGLD, {}, {}).unwrap())",
+                ".payment(Payment::try_new(TestTokenId::EGLD_000000, {}, {}).unwrap())",
                 nonce, amount
             ));
         } else {
@@ -318,6 +318,14 @@ impl<'a> TestGenerator<'a> {
 
         // Strip "str:" prefix if present
         let name = original_str.strip_prefix("str:").unwrap_or(original_str);
+
+        // Use the built-in constant for EGLD-000000
+        if name == "EGLD-000000" {
+            let const_name = "TestTokenId::EGLD_000000".to_string();
+            self.token_id_map
+                .insert(original_str.to_string(), const_name.clone());
+            return const_name;
+        }
 
         // Generate constant name: "TOK-123456" -> "TOK_123456"
         let const_name = name.to_uppercase().replace('-', "_");
