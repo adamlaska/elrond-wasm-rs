@@ -10,7 +10,11 @@ use multiversx_sc_scenario::scenario::model::{
 };
 use multiversx_sc_scenario::scenario_format::serde_raw::ValueSubTree;
 
-use super::{num_format, scenario_loader::scenario_to_function_name, test_gen::TestGenerator};
+use super::{
+    num_format,
+    scenario_loader::scenario_to_function_name,
+    test_gen::{ConstGroup, TestGenerator},
+};
 
 impl<'a> TestGenerator<'a> {
     /// Generates code for a single step
@@ -400,10 +404,12 @@ impl<'a> TestGenerator<'a> {
         // Generate constant name: "TOK-123456" -> "TOK_123456"
         let const_name = name.to_uppercase().replace('-', "_");
 
-        self.const_writeln(format!(
-            "const {}: TestTokenId = TestTokenId::new(\"{}\");",
-            const_name, name
-        ));
+        self.add_const(
+            const_name.clone(),
+            ConstGroup::TokenId,
+            "TestTokenId".to_string(),
+            format!("TestTokenId::new(\"{}\")", name),
+        );
 
         self.token_id_map
             .insert(original_str.to_string(), const_name.clone());
@@ -461,10 +467,12 @@ impl<'a> TestGenerator<'a> {
         self.h256_counter += 1;
         let const_name = format!("H256_{}", self.h256_counter);
 
-        self.const_writeln(format!(
-            "const {}: H256 = H256::from_hex(\"{}\");",
-            const_name, hex_str
-        ));
+        self.add_const(
+            const_name.clone(),
+            ConstGroup::Hash,
+            "H256".to_string(),
+            format!("H256::from_hex(\"{}\")", hex_str),
+        );
 
         self.h256_map.insert(hex_str, const_name.clone());
 
@@ -493,10 +501,12 @@ impl<'a> TestGenerator<'a> {
         *counter += 1;
         let const_name = format!("HEX_{}_{}", size, counter);
 
-        self.const_writeln(format!(
-            "const {}: [u8; {}] = hex!(\"{}\");",
-            const_name, size, hex_str
-        ));
+        self.add_const(
+            const_name.clone(),
+            ConstGroup::ByteArray,
+            format!("[u8; {}]", size),
+            format!("hex!(\"{}\")", hex_str),
+        );
 
         self.hex_array_map.insert(hex_str, const_name.clone());
 
@@ -604,12 +614,14 @@ impl<'a> TestGenerator<'a> {
             if let Some(const_name) = self.test_address_map.get(addr) {
                 return const_name.clone();
             }
-            // Generate new constant name and add to const_buffer
+            // Generate new constant name
             let const_name = Self::test_address_to_const_name(name);
-            self.const_writeln(format!(
-                "const {}: TestAddress = TestAddress::new(\"{}\");",
-                const_name, name
-            ));
+            self.add_const(
+                const_name.clone(),
+                ConstGroup::Address,
+                "TestAddress".to_string(),
+                format!("TestAddress::new(\"{}\")", name),
+            );
             self.test_address_map
                 .insert(addr.to_string(), const_name.clone());
             const_name
@@ -618,12 +630,14 @@ impl<'a> TestGenerator<'a> {
             if let Some(const_name) = self.test_address_map.get(addr) {
                 return const_name.clone();
             }
-            // Generate new constant name and add to const_buffer
+            // Generate new constant name
             let const_name = Self::test_address_to_const_name(name);
-            self.const_writeln(format!(
-                "const {}: TestSCAddress = TestSCAddress::new(\"{}\");",
-                const_name, name
-            ));
+            self.add_const(
+                const_name.clone(),
+                ConstGroup::Address,
+                "TestSCAddress".to_string(),
+                format!("TestSCAddress::new(\"{}\")", name),
+            );
             self.test_address_map
                 .insert(addr.to_string(), const_name.clone());
             const_name
@@ -632,13 +646,15 @@ impl<'a> TestGenerator<'a> {
             if let Some(const_name) = self.hex_address_map.get(clean) {
                 return const_name.clone();
             }
-            // Generate new constant name and add to const_buffer
+            // Generate new constant name
             self.hex_address_counter += 1;
             let const_name = format!("ADDRESS_HEX_{}", self.hex_address_counter);
-            self.const_writeln(format!(
-                "const {}: Address = Address::from_hex(\"{}\");",
-                const_name, clean
-            ));
+            self.add_const(
+                const_name.clone(),
+                ConstGroup::Address,
+                "Address".to_string(),
+                format!("Address::from_hex(\"{}\")", clean),
+            );
             self.hex_address_map
                 .insert(clean.to_string(), const_name.clone());
             const_name
@@ -647,13 +663,15 @@ impl<'a> TestGenerator<'a> {
             if let Some(const_name) = self.hex_address_map.get(clean) {
                 return const_name.clone();
             }
-            // Generate new constant name and add to const_buffer
+            // Generate new constant name
             self.hex_address_counter += 1;
             let const_name = format!("ADDRESS_HEX_{}", self.hex_address_counter);
-            self.const_writeln(format!(
-                "const {}: Address = Address::from_hex(\"{}\");",
-                const_name, clean
-            ));
+            self.add_const(
+                const_name.clone(),
+                ConstGroup::Address,
+                "Address".to_string(),
+                format!("Address::from_hex(\"{}\")", clean),
+            );
             self.hex_address_map
                 .insert(clean.to_string(), const_name.clone());
             const_name

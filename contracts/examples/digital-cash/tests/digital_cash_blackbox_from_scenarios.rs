@@ -4,40 +4,33 @@ use multiversx_sc_scenario::imports::*;
 
 use digital_cash::*;
 
-const ACC3_ADDRESS: TestAddress = TestAddress::new("acc3");
-const THE_DIGITAL_CASH_CONTRACT_ADDRESS: TestSCAddress = TestSCAddress::new("the_digital_cash_contract");
-const HEX_32_1: [u8; 32] = hex!("db474a3a065d3f0c0a62ae680ef6435e48eb482899d2ae30ff7a3a4b0ef19c60");
-const CASHTOKEN_778899: TestTokenId = TestTokenId::new("CASHTOKEN-778899");
-const CASHTOKEN_112233: TestTokenId = TestTokenId::new("CASHTOKEN-112233");
+const DIGITAL_CASH_CODE_PATH: MxscPath = MxscPath::new("output/digital-cash.mxsc.json");
 const ACC1_ADDRESS: TestAddress = TestAddress::new("acc1");
 const ACC2_ADDRESS: TestAddress = TestAddress::new("acc2");
+const ACC3_ADDRESS: TestAddress = TestAddress::new("acc3");
 const DIGITAL_CASH_OWNER_ADDRESS_ADDRESS: TestAddress = TestAddress::new("digital_cash_owner_address");
+const THE_DIGITAL_CASH_CONTRACT_ADDRESS: TestSCAddress = TestSCAddress::new("the_digital_cash_contract");
+const CASHTOKEN_112233: TestTokenId = TestTokenId::new("CASHTOKEN-112233");
+const CASHTOKEN_123456: TestTokenId = TestTokenId::new("CASHTOKEN-123456");
+const CASHTOKEN_445566: TestTokenId = TestTokenId::new("CASHTOKEN-445566");
+const CASHTOKEN_778899: TestTokenId = TestTokenId::new("CASHTOKEN-778899");
+const ESDT_778899: TestTokenId = TestTokenId::new("ESDT-778899");
+const HEX_32_1: [u8; 32] = hex!("db474a3a065d3f0c0a62ae680ef6435e48eb482899d2ae30ff7a3a4b0ef19c60");
+const HEX_32_10: [u8; 32] = hex!("558fd9b0dd9fed2d3bed883d3b92907743362c56b9728392f84b261f1cc5ae0a");
 const HEX_32_2: [u8; 32] = hex!("a40e72cdac3580e7203a4c2565c932f7691c35e624bcfd82718d7f559c88f440");
-const HEX_64_1: [u8; 64] = hex!("443c75ceadb9ec42acff7e1b92e0305182279446c1d6c0502959484c147a0430d3f96f0b988e646f6736d5bf8e4a843d8ba7730d6fa7e60f0ef3edd225ce630f");
 const HEX_32_3: [u8; 32] = hex!("8dc17613990e9b7476401a36d112d1a4d31190dec21e7e9a3c933872a27613ee");
 const HEX_32_4: [u8; 32] = hex!("885532043a061e0c779e4064b85193f72cffd22c5bcc208c209128e60f21bf0d");
-const HEX_64_2: [u8; 64] = hex!("1ac4f6d4d45836d97ffeda83a66aaea7631a3bb3d4063421ccb2b9de9485bdb4c9bd6e44e003f6a9c9eb74379467238204ff579471d203b1878c3f1530592a02");
-const CASHTOKEN_445566: TestTokenId = TestTokenId::new("CASHTOKEN-445566");
 const HEX_32_5: [u8; 32] = hex!("487bd4010b50c24a02018345fe5171edf4182e6294325382c75ef4c4409f01bd");
-const CASHTOKEN_123456: TestTokenId = TestTokenId::new("CASHTOKEN-123456");
 const HEX_32_6: [u8; 32] = hex!("287bd4010b50c24a02018345fe5171edf4182e6294325382c75ef4c4409f01bd");
-const HEX_64_3: [u8; 64] = hex!("dd092ec3a8d971daede79da4e5c5c90d66af9f2209a6f6541affa00c46a72fc2596e4db1b1bb226ce76e50730733078ff74a79ff7d0d185054375e0989330600");
 const HEX_32_7: [u8; 32] = hex!("d0474a3a065d3f0c0a62ae680ef6435e48eb482899d2ae30ff7a3a4b0ef19c60");
 const HEX_32_8: [u8; 32] = hex!("805532043a061e0c779e4064b85193f72cffd22c5bcc208c209128e60f21bf0d");
-const DIGITAL_CASH_CODE_PATH: MxscPath = MxscPath::new("output/digital-cash.mxsc.json");
 const HEX_32_9: [u8; 32] = hex!("e808c2baab2a20b612f1351da5945c52c60f5321c6cde572149db90c9e8fbfc7");
-const HEX_32_10: [u8; 32] = hex!("558fd9b0dd9fed2d3bed883d3b92907743362c56b9728392f84b261f1cc5ae0a");
-const ESDT_778899: TestTokenId = TestTokenId::new("ESDT-778899");
+const HEX_64_1: [u8; 64] = hex!("443c75ceadb9ec42acff7e1b92e0305182279446c1d6c0502959484c147a0430d3f96f0b988e646f6736d5bf8e4a843d8ba7730d6fa7e60f0ef3edd225ce630f");
+const HEX_64_2: [u8; 64] = hex!("1ac4f6d4d45836d97ffeda83a66aaea7631a3bb3d4063421ccb2b9de9485bdb4c9bd6e44e003f6a9c9eb74379467238204ff579471d203b1878c3f1530592a02");
+const HEX_64_3: [u8; 64] = hex!("dd092ec3a8d971daede79da4e5c5c90d66af9f2209a6f6541affa00c46a72fc2596e4db1b1bb226ce76e50730733078ff74a79ff7d0d185054375e0989330600");
 
 fn world() -> ScenarioWorld {
-    let mut blockchain = ScenarioWorld::new();
-
-    blockchain.set_current_dir_from_workspace("contracts/examples/digital-cash");
-    blockchain.register_contract(
-        "mxsc:output/digital-cash.mxsc.json",
-        digital_cash::ContractBuilder,
-    );
-    blockchain
+    todo!()
 }
 
 #[test]

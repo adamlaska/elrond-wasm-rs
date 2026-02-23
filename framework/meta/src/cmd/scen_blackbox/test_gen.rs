@@ -7,6 +7,23 @@ use std::{
     path::Path,
 };
 
+/// Grouping for generated constants. Variants are ordered by desired output order.
+#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+pub enum ConstGroup {
+    CodePath,
+    Address,
+    TokenId,
+    Hash,
+    ByteArray,
+}
+
+/// Data about a generated constant: its group, type, and initialization expression.
+pub struct ConstData {
+    pub const_group: ConstGroup,
+    pub const_type: String,
+    pub initialization: String,
+}
+
 use multiversx_sc_meta_lib::cargo_toml::CargoTomlContents;
 
 use super::scenario_loader::{self, ScenarioFile, scenario_to_function_name};
@@ -36,8 +53,8 @@ pub struct TestGenerator<'a> {
     pub hex_array_map: HashMap<String, String>,
     /// Counter for byte array constants, per size
     pub hex_array_counter: HashMap<usize, usize>,
-    /// Buffer for constant declarations
-    pub const_buffer: String,
+    /// Map from constant name to its data (type and initialization)
+    pub const_map: HashMap<String, ConstData>,
     /// Buffer for test and step function code
     pub step_buffer: String,
 }
@@ -58,7 +75,7 @@ impl<'a> TestGenerator<'a> {
             h256_counter: 0,
             hex_array_map: HashMap::new(),
             hex_array_counter: HashMap::new(),
-            const_buffer: String::new(),
+            const_map: HashMap::new(),
             step_buffer: String::new(),
         }
     }
@@ -74,10 +91,42 @@ impl<'a> TestGenerator<'a> {
         self.step_buffer.push_str(text.as_ref());
     }
 
-    /// Writes a formatted line to the const buffer
-    pub(super) fn const_writeln(&mut self, text: impl AsRef<str>) {
-        self.const_buffer.push_str(text.as_ref());
-        self.const_buffer.push('\n');
+    /// Registers a new constant declaration.
+    pub(super) fn add_const(
+        &mut self,
+        name: String,
+        const_group: ConstGroup,
+        const_type: String,
+        initialization: String,
+    ) {
+        self.const_map.insert(
+            name,
+            ConstData {
+                const_group,
+                const_type,
+                initialization,
+            },
+        );
+    }
+
+    /// Renders all registered constants, sorted by group, then by type name, then by const name.
+    pub(super) fn render_constants(&self) -> String {
+        let mut entries: Vec<_> = self.const_map.iter().collect();
+        entries.sort_by(|a, b| {
+            a.1.const_group
+                .cmp(&b.1.const_group)
+                .then(a.1.const_type.cmp(&b.1.const_type))
+                .then(a.0.cmp(b.0))
+        });
+
+        let mut buf = String::new();
+        for (name, data) in entries {
+            buf.push_str(&format!(
+                "const {}: {} = {};\n",
+                name, data.const_type, data.initialization
+            ));
+        }
+        buf
     }
 
     /// Derives a constant name from a code path expression
@@ -115,11 +164,13 @@ impl<'a> TestGenerator<'a> {
         // Remove leading ../ if present to make it relative to contract root
         let path_value = path_value.strip_prefix("../").unwrap_or(path_value);
 
-        // Generate the constant declaration
-        self.const_writeln(format!(
-            "const {}: MxscPath = MxscPath::new(\"{}\");",
-            const_name, path_value
-        ));
+        // Register the constant declaration
+        self.add_const(
+            const_name.clone(),
+            ConstGroup::CodePath,
+            "MxscPath".to_string(),
+            format!("MxscPath::new(\"{}\")", path_value),
+        );
 
         // Store in map for future use
         self.code_path_map
@@ -145,8 +196,9 @@ impl<'a> TestGenerator<'a> {
         writeln!(self.file).unwrap();
 
         // 2. Constants (code path + addresses)
-        if !self.const_buffer.is_empty() {
-            write!(self.file, "{}", self.const_buffer).unwrap();
+        let const_output = self.render_constants();
+        if !const_output.is_empty() {
+            write!(self.file, "{}", const_output).unwrap();
             writeln!(self.file).unwrap();
         }
 
