@@ -324,6 +324,7 @@ pub fn claim_esdt_scen_steps(world: &mut ScenarioWorld) {
         .run();
 
     // set block
+    world.current_block().block_timestamp_millis(TimestampMillis::new(86_400_500u64));
 
     world
         .tx()
@@ -336,6 +337,7 @@ pub fn claim_esdt_scen_steps(world: &mut ScenarioWorld) {
         .run();
 
     // set block
+    world.current_block().block_timestamp_millis(TimestampMillis::new(86_200_000u64));
 
     world
         .tx()
@@ -386,6 +388,7 @@ pub fn claim_egld_scen_steps(world: &mut ScenarioWorld) {
         .run();
 
     // set block
+    world.current_block().block_timestamp_millis(TimestampMillis::new(86_400_500u64));
 
     world
         .tx()
@@ -398,6 +401,7 @@ pub fn claim_egld_scen_steps(world: &mut ScenarioWorld) {
         .run();
 
     // set block
+    world.current_block().block_timestamp_millis(TimestampMillis::new(86_200_000u64));
 
     world
         .tx()
@@ -488,6 +492,7 @@ pub fn claim_fees_scen_steps(world: &mut ScenarioWorld) {
         .run();
 
     // set block
+    world.current_block().block_timestamp_millis(TimestampMillis::new(86_200_000u64));
 
     world
         .tx()
@@ -527,6 +532,7 @@ pub fn claim_multi_esdt_scen_steps(world: &mut ScenarioWorld) {
         .run();
 
     // set block
+    world.current_block().block_timestamp_millis(TimestampMillis::new(86_400_500u64));
 
     world
         .tx()
@@ -539,6 +545,7 @@ pub fn claim_multi_esdt_scen_steps(world: &mut ScenarioWorld) {
         .run();
 
     // set block
+    world.current_block().block_timestamp_millis(TimestampMillis::new(86_200_000u64));
 
     world
         .tx()
@@ -648,6 +655,7 @@ pub fn withdraw_esdt_scen_steps(world: &mut ScenarioWorld) {
         .run();
 
     // set block
+    world.current_block().block_timestamp_millis(TimestampMillis::new(86_400_500u64));
 
     world
         .tx()
@@ -705,6 +713,7 @@ pub fn withdraw_egld_scen_steps(world: &mut ScenarioWorld) {
         .run();
 
     // set block
+    world.current_block().block_timestamp_millis(TimestampMillis::new(86_400_000u64));
 
     world
         .tx()
@@ -762,6 +771,7 @@ pub fn withdraw_multi_esdt_scen_steps(world: &mut ScenarioWorld) {
         .run();
 
     // set block
+    world.current_block().block_timestamp_millis(TimestampMillis::new(86_400_500u64));
 
     world
         .tx()

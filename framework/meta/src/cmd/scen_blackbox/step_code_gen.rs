@@ -3,7 +3,7 @@
 use std::collections::BTreeMap;
 
 use multiversx_sc_scenario::scenario::model::{
-    Account, AddressKey, AddressValue, BigUintValue, BytesKey, BytesValue, CheckAccount,
+    Account, AddressKey, AddressValue, BigUintValue, BlockInfo, BytesKey, BytesValue, CheckAccount,
     CheckAccounts, CheckStateStep, CheckStorage, CheckStorageDetails, CheckValue, NewAddress,
     ScCallStep, ScDeployStep, ScQueryStep, SetStateStep, Step, TxCall, TxDeploy, TxESDT, TxExpect,
     TxQuery,
@@ -24,6 +24,7 @@ impl<'a> TestGenerator<'a> {
                     set_state.comment.as_deref(),
                     &set_state.accounts,
                     &set_state.new_addresses,
+                    set_state.current_block_info.as_ref().as_ref(),
                 );
             }
             Step::ScDeploy(sc_deploy) => {
@@ -86,9 +87,15 @@ impl<'a> TestGenerator<'a> {
         comment: Option<&str>,
         accounts: &std::collections::BTreeMap<AddressKey, Account>,
         new_addresses: &[NewAddress],
+        current_block_info: Option<&BlockInfo>,
     ) {
         if let Some(comment_text) = comment {
             self.step_writeln(format!("    // {}", comment_text));
+        }
+
+        // Generate current block info
+        if let Some(block_info) = current_block_info {
+            self.generate_block_info(block_info);
         }
 
         // Generate account setup
@@ -148,6 +155,45 @@ impl<'a> TestGenerator<'a> {
         }
 
         self.step_writeln("");
+    }
+
+    /// Generates `world.current_block().block_timestamp_millis(...)` and similar block info setters.
+    fn generate_block_info(&mut self, block_info: &BlockInfo) {
+        // blockTimestampMs takes priority over blockTimestamp
+        if let Some(ref ts_ms) = block_info.block_timestamp_ms {
+            let value = num_format::format_unsigned(&ts_ms.value.to_be_bytes(), "u64");
+            self.step_writeln(format!(
+                "    world.current_block().block_timestamp_millis(TimestampMillis::new({}));",
+                value
+            ));
+        } else if let Some(ref ts) = block_info.block_timestamp {
+            let value = num_format::format_unsigned(&ts.value.to_be_bytes(), "u64");
+            self.step_writeln(format!(
+                "    world.current_block().block_timestamp_seconds(TimestampSeconds::new({}));",
+                value
+            ));
+        }
+
+        if let Some(ref nonce) = block_info.block_nonce {
+            self.step_writeln(format!(
+                "    world.current_block().block_nonce({}u64);",
+                nonce.value
+            ));
+        }
+
+        if let Some(ref round) = block_info.block_round {
+            self.step_writeln(format!(
+                "    world.current_block().block_round({}u64);",
+                round.value
+            ));
+        }
+
+        if let Some(ref epoch) = block_info.block_epoch {
+            self.step_writeln(format!(
+                "    world.current_block().block_epoch({}u64);",
+                epoch.value
+            ));
+        }
     }
 
     fn generate_sc_deploy(
@@ -287,10 +333,10 @@ impl<'a> TestGenerator<'a> {
                     ValueSubTree::Str(s) => {
                         // Strip "str:" prefix if present
                         s.strip_prefix("str:").unwrap_or(s).to_string()
-                    },
+                    }
                     _ => String::new(),
                 }
-            },
+            }
             CheckValue::Star => String::new(),
         };
 
@@ -412,7 +458,7 @@ impl<'a> TestGenerator<'a> {
                 let amount = Self::format_biguint_value(&biguint_val.value);
                 self.step_writeln(format!(".esdt_balance({}, {})", token_const, amount));
                 self.step_write("        ");
-            },
+            }
             Esdt::Full(esdt_obj) => {
                 for instance in &esdt_obj.instances {
                     let nonce = instance.nonce.as_ref().map_or(0, |n| n.value);
@@ -423,10 +469,7 @@ impl<'a> TestGenerator<'a> {
                         .unwrap_or_else(|| "0u64".to_string());
 
                     if nonce == 0 {
-                        self.step_writeln(format!(
-                            ".esdt_balance({}, {})",
-                            token_const, amount
-                        ));
+                        self.step_writeln(format!(".esdt_balance({}, {})", token_const, amount));
                     } else {
                         self.step_writeln(format!(
                             ".esdt_nft_balance({}, {}, {}, ())",
@@ -435,7 +478,7 @@ impl<'a> TestGenerator<'a> {
                     }
                     self.step_write("        ");
                 }
-            },
+            }
         }
     }
 
