@@ -89,7 +89,7 @@ pub fn adder_scen_steps(world: &mut ScenarioWorld) {
         .to(ADDER_ADDRESS)
         .typed(adder_proxy::AdderProxy)
         .sum()
-        .returns(ExpectValue(ScenarioValueRaw::new("5")))
+        .returns(ExpectValue(5u64))
         .run();
 
     world

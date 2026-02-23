@@ -271,6 +271,7 @@ impl<'a> TestGenerator<'a> {
         self.generate_payments(&tx.egld_value, &tx.esdt_value);
 
         self.generate_expect_error(sc_call.expect.as_ref());
+        self.generate_expect_results(sc_call.expect.as_ref(), &tx.function);
 
         self.step_writeln(".run();");
         self.step_writeln("");
@@ -312,6 +313,80 @@ impl<'a> TestGenerator<'a> {
             Self::escape_string(&message)
         ));
         self.step_write("        ");
+    }
+
+    /// Generates `.returns(ExpectValue(...))` when the expected status is 0 (success)
+    /// and the scenario specifies concrete `out` values (not `"*"`).
+    ///
+    /// Uses ABI output type information to produce typed Rust literals, falling back
+    /// to `ScenarioValueRaw` when ABI info is unavailable.
+    fn generate_expect_results(&mut self, expect: Option<&TxExpect>, endpoint_name: &str) {
+        let Some(expect_val) = expect else {
+            return;
+        };
+
+        // Skip if error is expected
+        match &expect_val.status {
+            CheckValue::Equal(u64_val) if u64_val.value != 0 => return,
+            _ => {}
+        }
+
+        // Skip if out is Star (ignore) or empty
+        let out_values = match &expect_val.out {
+            CheckValue::Star => return,
+            CheckValue::Equal(values) if values.is_empty() => return,
+            CheckValue::Equal(values) => values,
+        };
+
+        // Skip if any individual output is Star (can't do a partial typed check)
+        if out_values.iter().any(|v| matches!(v, CheckValue::Star)) {
+            return;
+        }
+
+        let formatted = self.format_out_values(out_values, endpoint_name);
+
+        if formatted.len() == 1 {
+            self.step_writeln(format!(".returns(ExpectValue({}))", formatted[0]));
+        } else {
+            self.step_writeln(format!(
+                ".returns(ExpectValue(({},)))",
+                formatted.join(", ")
+            ));
+        }
+        self.step_write("        ");
+    }
+
+    /// Formats expected output values using ABI type information.
+    ///
+    /// Similar to `format_args` but uses `OutputAbi` instead of `InputAbi`.
+    fn format_out_values(
+        &mut self,
+        out_values: &[CheckValue<BytesValue>],
+        endpoint_name: &str,
+    ) -> Vec<String> {
+        let outputs = self.find_endpoint_outputs(endpoint_name);
+        let output_count = outputs.as_ref().map_or(0, |o| o.len());
+
+        let mut result = Vec::with_capacity(out_values.len());
+
+        for (i, out_val) in out_values.iter().enumerate() {
+            // Star values are filtered out by generate_expect_results
+            let bv = match out_val {
+                CheckValue::Star => {
+                    unreachable!("Star values should be filtered before calling format_out_values")
+                }
+                CheckValue::Equal(bv) => bv,
+            };
+
+            if i < output_count {
+                let type_names = &outputs.as_ref().unwrap()[i].type_names;
+                result.push(self.format_arg_value(type_names, bv));
+            } else {
+                result.push(Self::format_value(&bv.original));
+            }
+        }
+
+        result
     }
 
     /// Generates `.payment(...)` calls for EGLD and ESDT transfers.
@@ -491,20 +566,7 @@ impl<'a> TestGenerator<'a> {
         self.step_writeln(")");
         self.step_write("        ");
 
-        // Add returns if we have expected output
-        if let Some(expect_val) = expect {
-            if let CheckValue::Equal(ref out_values) = expect_val.out {
-                self.step_write(".returns(ExpectValue(");
-                for (i, out) in out_values.iter().enumerate() {
-                    if i > 0 {
-                        self.step_write(", ");
-                    }
-                    self.step_write(Self::format_check_value(out));
-                }
-                self.step_writeln("))");
-                self.step_write("        ");
-            }
-        }
+        self.generate_expect_results(expect, &tx.function);
 
         self.step_writeln(".run();");
         self.step_writeln("");
@@ -623,13 +685,6 @@ impl<'a> TestGenerator<'a> {
         }
     }
 
-    fn format_check_value(value: &CheckValue<BytesValue>) -> String {
-        match value {
-            CheckValue::Star => "ScenarioValueRaw::new(\"*\")".to_string(),
-            CheckValue::Equal(v) => Self::format_value(&v.original),
-        }
-    }
-
     fn format_check_value_for_storage(value: &CheckValue<BytesValue>) -> String {
         match value {
             CheckValue::Star => "*".to_string(),
@@ -698,6 +753,18 @@ impl<'a> TestGenerator<'a> {
             .iter()
             .find(|e| e.name == endpoint_name)
             .map(|e| e.inputs.clone())
+    }
+
+    /// Looks up the ABI outputs for an endpoint by its scenario name.
+    fn find_endpoint_outputs(
+        &self,
+        endpoint_name: &str,
+    ) -> Option<Vec<multiversx_sc::abi::OutputAbi>> {
+        self.abi
+            .endpoints
+            .iter()
+            .find(|e| e.name == endpoint_name)
+            .map(|e| e.outputs.clone())
     }
 
     /// Looks up the ABI inputs for the constructor.
