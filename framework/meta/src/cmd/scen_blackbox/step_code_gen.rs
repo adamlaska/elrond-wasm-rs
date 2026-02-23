@@ -333,6 +333,29 @@ impl<'a> TestGenerator<'a> {
         const_name
     }
 
+    /// Formats a 32-byte H256 value as a named constant.
+    /// Generates a `const H256_N: H256 = H256::from_hex("...");` declaration.
+    fn format_h256(&mut self, arg: &BytesValue) -> String {
+        let hex_str = hex::encode(&arg.value);
+
+        // Check if we already have a constant for this value
+        if let Some(const_name) = self.h256_map.get(&hex_str) {
+            return const_name.clone();
+        }
+
+        self.h256_counter += 1;
+        let const_name = format!("H256_{}", self.h256_counter);
+
+        self.const_writeln(format!(
+            "const {}: H256 = H256::from_hex(\"{}\");",
+            const_name, hex_str
+        ));
+
+        self.h256_map.insert(hex_str, const_name.clone());
+
+        const_name
+    }
+
     /// Formats a BigUint value for use as a payment amount.
     fn format_biguint_value(value: &multiversx_sc_scenario::num_bigint::BigUint) -> String {
         let bytes = value.to_bytes_be();
@@ -608,6 +631,7 @@ impl<'a> TestGenerator<'a> {
             "TokenIdentifier" | "EgldOrEsdtTokenIdentifier" | "TokenId" => {
                 self.format_token_id(arg)
             }
+            "H256" | "array32<u8>" if arg.value.len() == 32 => self.format_h256(arg),
             "TimestampMillis" | "TimestampSeconds" | "DurationMillis" | "DurationSeconds" => {
                 let inner = num_format::format_unsigned(&arg.value, "u64");
                 format!("{}::new({})", type_names.abi, inner)
