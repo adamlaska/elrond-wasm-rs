@@ -1,7 +1,8 @@
 use crate::{
     contract_base::TransferExecuteFailed,
     types::{
-        BigUint, EsdtTokenIdentifier, EsdtTokenPayment, ManagedAddress, NonZeroBigUint, Payment, PaymentVec, ScenarioPayments, TokenId, TxFrom, TxPaymentCompose, TxToSpecified
+        BigUint, EsdtTokenIdentifier, EsdtTokenPayment, ManagedAddress, NonZeroBigUint, Payment,
+        PaymentVec, ScenarioPayments, TokenId, TxFrom, TxPaymentCompose, TxToSpecified,
     },
 };
 
