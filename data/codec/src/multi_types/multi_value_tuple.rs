@@ -1,4 +1,5 @@
 #![allow(deprecated)]
+#![allow(clippy::too_many_arguments)]
 
 use crate::{
     DecodeErrorHandler, EncodeErrorHandler, MultiValueConstLength, MultiValueLength,
