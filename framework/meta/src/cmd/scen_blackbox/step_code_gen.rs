@@ -471,6 +471,38 @@ impl<'a> TestGenerator<'a> {
         const_name
     }
 
+    /// Parses an ABI type name like `"array32<u8>"` and returns the array size.
+    fn parse_array_type(abi_type: &str) -> Option<usize> {
+        let rest = abi_type.strip_prefix("array")?;
+        let size_str = rest.strip_suffix("<u8>")?;
+        size_str.parse::<usize>().ok()
+    }
+
+    /// Formats a fixed-size byte array as a named constant using `hex!()`.
+    /// Generates `const HEX_{size}_{N}: [u8; {size}] = hex!("...");`
+    /// and returns `&HEX_{size}_{N}`.
+    fn format_byte_array(&mut self, arg: &BytesValue, size: usize) -> String {
+        let hex_str = hex::encode(&arg.value);
+
+        // Check if we already have a constant for this value
+        if let Some(const_name) = self.hex_array_map.get(&hex_str) {
+            return format!("&{}", const_name);
+        }
+
+        let counter = self.hex_array_counter.entry(size).or_insert(0);
+        *counter += 1;
+        let const_name = format!("HEX_{}_{}", size, counter);
+
+        self.const_writeln(format!(
+            "const {}: [u8; {}] = hex!(\"{}\");",
+            const_name, size, hex_str
+        ));
+
+        self.hex_array_map.insert(hex_str, const_name.clone());
+
+        format!("&{}", const_name)
+    }
+
     /// Formats a BigUint value for use as a payment amount.
     fn format_biguint_value(value: &multiversx_sc_scenario::num_bigint::BigUint) -> String {
         let bytes = value.to_bytes_be();
@@ -743,13 +775,20 @@ impl<'a> TestGenerator<'a> {
             "TokenIdentifier" | "EgldOrEsdtTokenIdentifier" | "TokenId" => {
                 self.format_token_id(arg)
             }
-            "H256" | "array32<u8>" if arg.value.len() == 32 => self.format_h256(arg),
+            "H256" if arg.value.len() == 32 => self.format_h256(arg),
             "TimestampMillis" | "TimestampSeconds" | "DurationMillis" | "DurationSeconds" => {
                 let inner = num_format::format_unsigned(&arg.value, "u64");
                 format!("{}::new({})", type_names.abi, inner)
             }
             // TODO: add more type cases here
-            _ => Self::format_value(&arg.original),
+            _ => {
+                if let Some(size) = Self::parse_array_type(&type_names.abi) {
+                    if arg.value.len() == size {
+                        return self.format_byte_array(arg, size);
+                    }
+                }
+                Self::format_value(&arg.original)
+            }
         }
     }
 

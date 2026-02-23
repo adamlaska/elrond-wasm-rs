@@ -32,6 +32,10 @@ pub struct TestGenerator<'a> {
     pub h256_map: HashMap<String, String>,
     /// Counter for H256 constants
     pub h256_counter: usize,
+    /// Maps byte array hex value to constant name (for arrayN<u8> types)
+    pub hex_array_map: HashMap<String, String>,
+    /// Counter for byte array constants, per size
+    pub hex_array_counter: HashMap<usize, usize>,
     /// Buffer for constant declarations
     pub const_buffer: String,
     /// Buffer for test and step function code
@@ -52,6 +56,8 @@ impl<'a> TestGenerator<'a> {
             token_id_map: HashMap::new(),
             h256_map: HashMap::new(),
             h256_counter: 0,
+            hex_array_map: HashMap::new(),
+            hex_array_counter: HashMap::new(),
             const_buffer: String::new(),
             step_buffer: String::new(),
         }
