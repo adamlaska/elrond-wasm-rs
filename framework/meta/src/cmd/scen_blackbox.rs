@@ -1,8 +1,12 @@
+mod check_state_gen;
 mod const_state;
+mod format_args;
 mod num_format;
 mod scenario_loader;
+mod set_state_gen;
 mod step_code_gen;
 mod test_gen;
+mod tx_gen;
 
 use crate::cli::ScenBlackboxArgs;
 use crate::folder_structure::{RelevantDirectories, RelevantDirectory, dir_pretty_print};

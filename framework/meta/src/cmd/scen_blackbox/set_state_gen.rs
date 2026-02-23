@@ -1,0 +1,195 @@
+use multiversx_sc_scenario::scenario::model::{BlockInfo, SetStateStep};
+use multiversx_sc_scenario::scenario_format::serde_raw::ValueSubTree;
+
+use super::{num_format, test_gen::TestGenerator};
+
+impl<'a> TestGenerator<'a> {
+    pub(super) fn generate_set_state(&mut self, set_state: &SetStateStep) {
+        if let Some(comment_text) = &set_state.comment {
+            self.step_writeln(format!("    // {}", comment_text));
+        }
+
+        // Generate current block info
+        if let Some(block_info) = set_state.current_block_info.as_ref() {
+            self.generate_block_info(block_info);
+        }
+
+        // Generate account setup
+        for (address_key, account) in &set_state.accounts {
+            let address_expr = self.format_address(&address_key.original);
+
+            // Check if we need to set anything
+            let has_nonce = account
+                .nonce
+                .as_ref()
+                .map(|v| !Self::is_default_value(&v.original))
+                .unwrap_or(false);
+            let has_balance = account
+                .balance
+                .as_ref()
+                .map(|v| !Self::is_default_value(&v.original))
+                .unwrap_or(false);
+            let has_esdt = !account.esdt.is_empty();
+
+            if has_nonce || has_balance || has_esdt {
+                self.step_write(format!("    world.account({})", address_expr));
+
+                if has_nonce {
+                    if let Some(nonce) = &account.nonce {
+                        self.step_writeln(format!(
+                            ".nonce({})",
+                            Self::format_nonce_value(&nonce.original)
+                        ));
+                        self.step_write("        ");
+                    }
+                }
+
+                if has_balance {
+                    if let Some(balance) = &account.balance {
+                        self.step_writeln(format!(
+                            ".balance({})",
+                            Self::format_balance_value(&balance.original)
+                        ));
+                        self.step_write("        ");
+                    }
+                }
+
+                for (token_key, esdt) in &account.esdt {
+                    let token_const = self.format_token_id_from_key(token_key);
+                    self.generate_esdt_balance_calls(&token_const, esdt);
+                }
+
+                self.step_writeln(";");
+            }
+        }
+
+        // Store new addresses for later use in deploy steps
+        for new_addr in &set_state.new_addresses {
+            let creator_key = new_addr.creator_address.original.to_concatenated_string();
+            let new_address_key = new_addr.new_address.original.to_concatenated_string();
+            self.new_address_map.insert(creator_key, new_address_key);
+        }
+
+        self.step_writeln("");
+    }
+
+    /// Generates `world.current_block().block_timestamp_millis(...)` and similar block info setters.
+    fn generate_block_info(&mut self, block_info: &BlockInfo) {
+        // blockTimestampMs takes priority over blockTimestamp
+        if let Some(ref ts_ms) = block_info.block_timestamp_ms {
+            let value = num_format::format_unsigned(&ts_ms.value.to_be_bytes(), "u64");
+            self.step_writeln(format!(
+                "    world.current_block().block_timestamp_millis(TimestampMillis::new({}));",
+                value
+            ));
+        } else if let Some(ref ts) = block_info.block_timestamp {
+            let value = num_format::format_unsigned(&ts.value.to_be_bytes(), "u64");
+            self.step_writeln(format!(
+                "    world.current_block().block_timestamp_seconds(TimestampSeconds::new({}));",
+                value
+            ));
+        }
+
+        if let Some(ref nonce) = block_info.block_nonce {
+            self.step_writeln(format!(
+                "    world.current_block().block_nonce({}u64);",
+                nonce.value
+            ));
+        }
+
+        if let Some(ref round) = block_info.block_round {
+            self.step_writeln(format!(
+                "    world.current_block().block_round({}u64);",
+                round.value
+            ));
+        }
+
+        if let Some(ref epoch) = block_info.block_epoch {
+            self.step_writeln(format!(
+                "    world.current_block().block_epoch({}u64);",
+                epoch.value
+            ));
+        }
+    }
+
+    /// Generates `.esdt_balance(token, amount)` or `.esdt_nft_balance(token, nonce, amount, ())`
+    /// calls depending on whether the ESDT instances have non-zero nonces.
+    pub(super) fn generate_esdt_balance_calls(
+        &mut self,
+        token_const: &str,
+        esdt: &multiversx_sc_scenario::scenario::model::Esdt,
+    ) {
+        use multiversx_sc_scenario::scenario::model::Esdt;
+        match esdt {
+            Esdt::Short(biguint_val) => {
+                let amount = Self::format_biguint_value(&biguint_val.value);
+                self.step_writeln(format!(".esdt_balance({}, {})", token_const, amount));
+                self.step_write("        ");
+            }
+            Esdt::Full(esdt_obj) => {
+                for instance in &esdt_obj.instances {
+                    let nonce = instance.nonce.as_ref().map_or(0, |n| n.value);
+                    let amount = instance
+                        .balance
+                        .as_ref()
+                        .map(|b| Self::format_biguint_value(&b.value))
+                        .unwrap_or_else(|| "0u64".to_string());
+
+                    if nonce == 0 {
+                        self.step_writeln(format!(".esdt_balance({}, {})", token_const, amount));
+                    } else {
+                        self.step_writeln(format!(
+                            ".esdt_nft_balance({}, {}, {}, ())",
+                            token_const, nonce, amount
+                        ));
+                    }
+                    self.step_write("        ");
+                }
+            }
+        }
+    }
+
+    pub(super) fn format_nonce_value(value: &ValueSubTree) -> String {
+        let num_str = match value {
+            ValueSubTree::Str(s) => s.as_str(),
+            _ => return format!("\"{}\"", Self::format_value_as_string(value)),
+        };
+
+        // Remove commas and underscores for parsing
+        let cleaned = num_str.replace([',', '_'], "");
+
+        // Nonces are always u64
+        if cleaned.parse::<u64>().is_ok() {
+            format!("{}u64", cleaned)
+        } else {
+            format!("\"{}\"", num_str)
+        }
+    }
+
+    pub(super) fn format_balance_value(value: &ValueSubTree) -> String {
+        let num_str = match value {
+            ValueSubTree::Str(s) => s.as_str(),
+            _ => return format!("\"{}\"", Self::format_value_as_string(value)),
+        };
+
+        // Remove commas and underscores for parsing
+        let cleaned = num_str.replace([',', '_'], "");
+
+        // Try to parse as u128 and choose appropriate type
+        if let Ok(num_u128) = cleaned.parse::<u128>() {
+            if num_u128 <= u64::MAX as u128 {
+                format!("{}u64", cleaned)
+            } else {
+                format!("{}u128", cleaned)
+            }
+        } else {
+            // Fallback to string if not a valid number
+            format!("\"{}\"", num_str)
+        }
+    }
+
+    pub(super) fn is_default_value(value: &ValueSubTree) -> bool {
+        let val_str = format!("{:?}", value);
+        val_str == "\"0\"" || val_str == "\"\"" || val_str.is_empty()
+    }
+}
