@@ -10,12 +10,7 @@ use multiversx_sc_scenario::scenario::model::{
 };
 use multiversx_sc_scenario::scenario_format::serde_raw::ValueSubTree;
 
-use super::{
-    const_state::ConstGroup,
-    num_format,
-    scenario_loader::scenario_to_function_name,
-    test_gen::TestGenerator,
-};
+use super::{num_format, scenario_loader::scenario_to_function_name, test_gen::TestGenerator};
 
 impl<'a> TestGenerator<'a> {
     /// Generates code for a single step
@@ -386,38 +381,12 @@ impl<'a> TestGenerator<'a> {
 
     /// Core token ID formatting logic, shared by `format_token_id` and `format_token_id_from_key`.
     fn format_token_id_str(&mut self, original_str: &str) -> String {
-        // Check if we already have a constant for this token
-        if let Some(const_name) = self.consts.token_id_map.get(original_str) {
-            return const_name.clone();
+        if original_str == "str:EGLD-000000" {
+            // Use the built-in constant for EGLD-000000
+            "TestTokenId::EGLD_000000".to_string()
+        } else {
+            self.consts.get_or_create_token_id(original_str)
         }
-
-        // Strip "str:" prefix if present
-        let name = original_str.strip_prefix("str:").unwrap_or(original_str);
-
-        // Use the built-in constant for EGLD-000000
-        if name == "EGLD-000000" {
-            let const_name = "TestTokenId::EGLD_000000".to_string();
-            self.consts
-                .token_id_map
-                .insert(original_str.to_string(), const_name.clone());
-            return const_name;
-        }
-
-        // Generate constant name: "TOK-123456" -> "TOK_123456"
-        let const_name = name.to_uppercase().replace('-', "_");
-
-        self.consts.add_const(
-            const_name.clone(),
-            ConstGroup::TokenId,
-            "TestTokenId".to_string(),
-            format!("TestTokenId::new(\"{}\")", name),
-        );
-
-        self.consts
-            .token_id_map
-            .insert(original_str.to_string(), const_name.clone());
-
-        const_name
     }
 
     /// Generates `.esdt_balance(token, amount)` or `.esdt_nft_balance(token, nonce, amount, ())`
@@ -461,25 +430,7 @@ impl<'a> TestGenerator<'a> {
     /// Generates a `const H256_N: H256 = H256::from_hex("...");` declaration.
     fn format_h256(&mut self, arg: &BytesValue) -> String {
         let hex_str = hex::encode(&arg.value);
-
-        // Check if we already have a constant for this value
-        if let Some(const_name) = self.consts.h256_map.get(&hex_str) {
-            return const_name.clone();
-        }
-
-        self.consts.h256_counter += 1;
-        let const_name = format!("H256_{}", self.consts.h256_counter);
-
-        self.consts.add_const(
-            const_name.clone(),
-            ConstGroup::Hash,
-            "H256".to_string(),
-            format!("H256::from_hex(\"{}\")", hex_str),
-        );
-
-        self.consts.h256_map.insert(hex_str, const_name.clone());
-
-        const_name
+        self.consts.get_or_create_h256(&hex_str)
     }
 
     /// Parses an ABI type name like `"array32<u8>"` and returns the array size.
@@ -494,26 +445,7 @@ impl<'a> TestGenerator<'a> {
     /// and returns `&HEX_{size}_{N}`.
     fn format_byte_array(&mut self, arg: &BytesValue, size: usize) -> String {
         let hex_str = hex::encode(&arg.value);
-
-        // Check if we already have a constant for this value
-        if let Some(const_name) = self.consts.hex_array_map.get(&hex_str) {
-            return format!("&{}", const_name);
-        }
-
-        let counter = self.consts.hex_array_counter.entry(size).or_insert(0);
-        *counter += 1;
-        let const_name = format!("HEX_{}_{}", size, counter);
-
-        self.consts.add_const(
-            const_name.clone(),
-            ConstGroup::ByteArray,
-            format!("[u8; {}]", size),
-            format!("hex!(\"{}\")", hex_str),
-        );
-
-        self.consts.hex_array_map.insert(hex_str, const_name.clone());
-
-        format!("&{}", const_name)
+        self.consts.get_or_create_byte_array(&hex_str, size)
     }
 
     /// Formats a BigUint value for use as a payment amount.
@@ -613,75 +545,14 @@ impl<'a> TestGenerator<'a> {
 
         // Handle address: and sc: prefixes
         if let Some(name) = clean.strip_prefix("address:") {
-            // Check if we already have a constant for this address
-            if let Some(const_name) = self.consts.test_address_map.get(addr) {
-                return const_name.clone();
-            }
-            // Generate new constant name
-            let const_name = Self::test_address_to_const_name(name);
-            self.consts.add_const(
-                const_name.clone(),
-                ConstGroup::Address,
-                "TestAddress".to_string(),
-                format!("TestAddress::new(\"{}\")", name),
-            );
-            self.consts
-                .test_address_map
-                .insert(addr.to_string(), const_name.clone());
-            const_name
+            self.consts.get_or_create_address(addr, name)
         } else if let Some(name) = clean.strip_prefix("sc:") {
-            // Check if we already have a constant for this address
-            if let Some(const_name) = self.consts.test_address_map.get(addr) {
-                return const_name.clone();
-            }
-            // Generate new constant name
-            let const_name = Self::test_address_to_const_name(name);
-            self.consts.add_const(
-                const_name.clone(),
-                ConstGroup::Address,
-                "TestSCAddress".to_string(),
-                format!("TestSCAddress::new(\"{}\")", name),
-            );
-            self.consts
-                .test_address_map
-                .insert(addr.to_string(), const_name.clone());
-            const_name
-        } else if clean.starts_with("0x") || clean.starts_with("0X") {
-            // Hex address - check if we already have a constant for it
-            if let Some(const_name) = self.consts.hex_address_map.get(clean) {
-                return const_name.clone();
-            }
-            // Generate new constant name
-            self.consts.hex_address_counter += 1;
-            let const_name = format!("ADDRESS_HEX_{}", self.consts.hex_address_counter);
-            self.consts.add_const(
-                const_name.clone(),
-                ConstGroup::Address,
-                "Address".to_string(),
-                format!("Address::from_hex(\"{}\")", clean),
-            );
-            self.consts
-                .hex_address_map
-                .insert(clean.to_string(), const_name.clone());
-            const_name
-        } else if clean.len() == 64 && clean.chars().all(|c| c.is_ascii_hexdigit()) {
-            // Hex address without 0x prefix - check if we already have a constant for it
-            if let Some(const_name) = self.consts.hex_address_map.get(clean) {
-                return const_name.clone();
-            }
-            // Generate new constant name
-            self.consts.hex_address_counter += 1;
-            let const_name = format!("ADDRESS_HEX_{}", self.consts.hex_address_counter);
-            self.consts.add_const(
-                const_name.clone(),
-                ConstGroup::Address,
-                "Address".to_string(),
-                format!("Address::from_hex(\"{}\")", clean),
-            );
-            self.consts
-                .hex_address_map
-                .insert(clean.to_string(), const_name.clone());
-            const_name
+            self.consts.get_or_create_sc_address(addr, name)
+        } else if clean.starts_with("0x")
+            || clean.starts_with("0X")
+            || (clean.len() == 64 && clean.chars().all(|c| c.is_ascii_hexdigit()))
+        {
+            self.consts.get_or_create_hex_address(clean)
         } else {
             // Raw address - wrap in ScenarioValueRaw
             format!("ScenarioValueRaw::new(\"{}\")", clean)
@@ -1071,13 +942,5 @@ impl<'a> TestGenerator<'a> {
     fn is_default_value(value: &ValueSubTree) -> bool {
         let val_str = format!("{:?}", value);
         val_str == "\"0\"" || val_str == "\"\"" || val_str.is_empty()
-    }
-
-    /// Converts a test address name (like "owner") to a constant name (like "OWNER_ADDRESS")
-    fn test_address_to_const_name(name: &str) -> String {
-        format!(
-            "{}_ADDRESS",
-            name.to_uppercase().replace(['-', '.', ' '], "_")
-        )
     }
 }
