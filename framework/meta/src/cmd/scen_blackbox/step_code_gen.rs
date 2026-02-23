@@ -106,8 +106,9 @@ impl<'a> TestGenerator<'a> {
                 .as_ref()
                 .map(|v| !Self::is_default_value(&v.original))
                 .unwrap_or(false);
+            let has_esdt = !account.esdt.is_empty();
 
-            if has_nonce || has_balance {
+            if has_nonce || has_balance || has_esdt {
                 self.step_write(format!("    world.account({})", address_expr));
 
                 if has_nonce {
@@ -128,6 +129,11 @@ impl<'a> TestGenerator<'a> {
                         ));
                         self.step_write("        ");
                     }
+                }
+
+                for (token_key, esdt) in &account.esdt {
+                    let token_const = self.format_token_id_from_key(token_key);
+                    self.generate_esdt_balance_calls(&token_const, esdt);
                 }
 
                 self.step_writeln(";");
@@ -353,6 +359,16 @@ impl<'a> TestGenerator<'a> {
             _ => return format!("ScenarioValueRaw::new(\"{:?}\")", token_id.value),
         };
 
+        self.format_token_id_str(original_str)
+    }
+
+    /// Formats a token identifier from a BytesKey (used in setState ESDT maps).
+    fn format_token_id_from_key(&mut self, key: &BytesKey) -> String {
+        self.format_token_id_str(&key.original)
+    }
+
+    /// Core token ID formatting logic, shared by `format_token_id` and `format_token_id_from_key`.
+    fn format_token_id_str(&mut self, original_str: &str) -> String {
         // Check if we already have a constant for this token
         if let Some(const_name) = self.token_id_map.get(original_str) {
             return const_name.clone();
@@ -381,6 +397,46 @@ impl<'a> TestGenerator<'a> {
             .insert(original_str.to_string(), const_name.clone());
 
         const_name
+    }
+
+    /// Generates `.esdt_balance(token, amount)` or `.esdt_nft_balance(token, nonce, amount, ())`
+    /// calls depending on whether the ESDT instances have non-zero nonces.
+    fn generate_esdt_balance_calls(
+        &mut self,
+        token_const: &str,
+        esdt: &multiversx_sc_scenario::scenario::model::Esdt,
+    ) {
+        use multiversx_sc_scenario::scenario::model::Esdt;
+        match esdt {
+            Esdt::Short(biguint_val) => {
+                let amount = Self::format_biguint_value(&biguint_val.value);
+                self.step_writeln(format!(".esdt_balance({}, {})", token_const, amount));
+                self.step_write("        ");
+            },
+            Esdt::Full(esdt_obj) => {
+                for instance in &esdt_obj.instances {
+                    let nonce = instance.nonce.as_ref().map_or(0, |n| n.value);
+                    let amount = instance
+                        .balance
+                        .as_ref()
+                        .map(|b| Self::format_biguint_value(&b.value))
+                        .unwrap_or_else(|| "0u64".to_string());
+
+                    if nonce == 0 {
+                        self.step_writeln(format!(
+                            ".esdt_balance({}, {})",
+                            token_const, amount
+                        ));
+                    } else {
+                        self.step_writeln(format!(
+                            ".esdt_nft_balance({}, {}, {}, ())",
+                            token_const, nonce, amount
+                        ));
+                    }
+                    self.step_write("        ");
+                }
+            },
+        }
     }
 
     /// Formats a 32-byte H256 value as a named constant.

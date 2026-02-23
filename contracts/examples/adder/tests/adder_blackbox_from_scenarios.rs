@@ -5,6 +5,10 @@ use multiversx_sc_scenario::imports::*;
 use adder::*;
 
 const ADDRESS_HEX_1: Address = Address::from_hex("0xe32afedc904fe1939746ad973beb383563cf63642ba669b3040f9b9428a5ed60");
+const CAN_14DC0A: TestTokenId = TestTokenId::new("CAN-14dc0a");
+const CAN_2ABF4B: TestTokenId = TestTokenId::new("CAN-2abf4b");
+const CAN_6D39E6: TestTokenId = TestTokenId::new("CAN-6d39e6");
+const CAN_AC1592: TestTokenId = TestTokenId::new("CAN-ac1592");
 const ADDER_CODE_PATH: MxscPath = MxscPath::new("output/adder.mxsc.json");
 const ADDRESS_HEX_2: Address = Address::from_hex("0x0000000000000000050028600ceb73ac22ec0b6f257aff7bed74dffa3ebfed60");
 const OWNER_ADDRESS: TestAddress = TestAddress::new("owner");
@@ -23,6 +27,10 @@ fn interactor_trace_scen() {
 pub fn interactor_trace_scen_steps(world: &mut ScenarioWorld) {
     world.account(ADDRESS_HEX_1).nonce(481u64)
         .balance(106274669842530000003u128)
+        .esdt_balance(CAN_14DC0A, 1_000u64)
+        .esdt_balance(CAN_2ABF4B, 1_000u64)
+        .esdt_balance(CAN_6D39E6, 1_000u64)
+        .esdt_balance(CAN_AC1592, 1_000u64)
         ;
 
 
