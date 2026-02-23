@@ -58,7 +58,7 @@ version = "=0.64.2"
 path = "../snippets"
 
 [dependencies.multiversx-sc-scenario]
-version = "=0.64.1"
+version = "=0.64.2"
 path = "../scenario"
 
 [dependencies.multiversx-sdk]
