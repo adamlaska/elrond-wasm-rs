@@ -187,7 +187,7 @@ impl ConstState {
 
         let counter = self.hex_array_counter.entry(size).or_insert(0);
         *counter += 1;
-        let const_name = format!("HEX_{}_{}", size, counter);
+        let const_name = format!("HEX_{size}_{counter:02}");
 
         self.add_const(
             const_name.clone(),
