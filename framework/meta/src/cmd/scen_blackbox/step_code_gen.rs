@@ -149,7 +149,7 @@ impl<'a> TestGenerator<'a> {
         id: Option<&String>,
         comment: Option<&str>,
         tx: &TxDeploy,
-        _expect: Option<&TxExpect>,
+        expect: Option<&TxExpect>,
     ) {
         if let Some(comment_text) = comment {
             self.step_writeln(format!("    // {}", comment_text));
@@ -200,6 +200,8 @@ impl<'a> TestGenerator<'a> {
             self.step_write("        ");
         }
 
+        self.generate_expect_error(expect);
+
         self.step_writeln(".run();");
         self.step_writeln("");
     }
@@ -209,7 +211,7 @@ impl<'a> TestGenerator<'a> {
         id: Option<&String>,
         comment: Option<&str>,
         tx: &TxCall,
-        _expect: Option<&TxExpect>,
+        expect: Option<&TxExpect>,
     ) {
         if let Some(comment_text) = comment {
             self.step_writeln(format!("    // {}", comment_text));
@@ -250,8 +252,48 @@ impl<'a> TestGenerator<'a> {
         // Generate payments
         self.generate_payments(&tx.egld_value, &tx.esdt_value);
 
+        self.generate_expect_error(expect);
+
         self.step_writeln(".run();");
         self.step_writeln("");
+    }
+
+    /// Generates `.with_result(ExpectError(status, "message"))` when the expected status is non-zero.
+    fn generate_expect_error(&mut self, expect: Option<&TxExpect>) {
+        let Some(expect_val) = expect else {
+            return;
+        };
+
+        // Extract status code; skip if it's "*" or 0
+        let status_code = match &expect_val.status {
+            CheckValue::Equal(u64_val) => u64_val.value,
+            CheckValue::Star => return,
+        };
+
+        if status_code == 0 {
+            return;
+        }
+
+        // Extract message string
+        let message = match &expect_val.message {
+            CheckValue::Equal(bytes_val) => {
+                match &bytes_val.original {
+                    ValueSubTree::Str(s) => {
+                        // Strip "str:" prefix if present
+                        s.strip_prefix("str:").unwrap_or(s).to_string()
+                    },
+                    _ => String::new(),
+                }
+            },
+            CheckValue::Star => String::new(),
+        };
+
+        self.step_writeln(format!(
+            ".with_result(ExpectError({}, \"{}\"))",
+            status_code,
+            Self::escape_string(&message)
+        ));
+        self.step_write("        ");
     }
 
     /// Generates `.payment(...)` calls for EGLD and ESDT transfers.
