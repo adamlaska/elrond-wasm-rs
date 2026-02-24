@@ -18,49 +18,30 @@ impl<'a> TestGenerator<'a> {
         for (address_key, account) in &set_state.accounts {
             let address_expr = self.format_address(&address_key.original);
 
-            // Check if we need to set anything
-            let has_nonce = account
-                .nonce
-                .as_ref()
-                .map(|v| !Self::is_default_value(&v.original))
-                .unwrap_or(false);
-            let has_balance = account
-                .balance
-                .as_ref()
-                .map(|v| !Self::is_default_value(&v.original))
-                .unwrap_or(false);
-            let has_esdt = !account.esdt.is_empty();
+            self.step_write(format!("    world.account({})", address_expr));
 
-            if has_nonce || has_balance || has_esdt {
-                self.step_write(format!("    world.account({})", address_expr));
-
-                if has_nonce {
-                    if let Some(nonce) = &account.nonce {
-                        self.step_writeln(format!(
-                            ".nonce({})",
-                            Self::format_nonce_value(&nonce.original)
-                        ));
-                        self.step_write("        ");
-                    }
-                }
-
-                if has_balance {
-                    if let Some(balance) = &account.balance {
-                        self.step_writeln(format!(
-                            ".balance({})",
-                            Self::format_balance_value(&balance.original)
-                        ));
-                        self.step_write("        ");
-                    }
-                }
-
-                for (token_key, esdt) in &account.esdt {
-                    let token_const = self.format_token_id_from_key(token_key);
-                    self.generate_esdt_balance_calls(&token_const, esdt);
-                }
-
-                self.step_writeln(";");
+            if let Some(nonce) = &account.nonce {
+                self.step_writeln(format!(
+                    ".nonce({})",
+                    Self::format_nonce_value(&nonce.original)
+                ));
+                self.step_write("        ");
             }
+
+            if let Some(balance) = &account.balance {
+                self.step_writeln(format!(
+                    ".balance({})",
+                    Self::format_balance_value(&balance.original)
+                ));
+                self.step_write("        ");
+            }
+
+            for (token_key, esdt) in &account.esdt {
+                let token_const = self.format_token_id_from_key(token_key);
+                self.generate_esdt_balance_calls(&token_const, esdt);
+            }
+
+            self.step_writeln(";");
         }
 
         // Store new addresses for later use in deploy steps
@@ -186,10 +167,5 @@ impl<'a> TestGenerator<'a> {
             // Fallback to string if not a valid number
             format!("\"{}\"", num_str)
         }
-    }
-
-    pub(super) fn is_default_value(value: &ValueSubTree) -> bool {
-        let val_str = format!("{:?}", value);
-        val_str == "\"0\"" || val_str == "\"\"" || val_str.is_empty()
     }
 }
