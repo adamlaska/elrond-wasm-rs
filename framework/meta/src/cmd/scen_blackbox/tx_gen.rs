@@ -222,24 +222,26 @@ impl<'a> TestGenerator<'a> {
         }
 
         // Extract message string
-        let message = match &expect_val.message {
+        match &expect_val.message {
             CheckValue::Equal(bytes_val) => {
-                match &bytes_val.original {
+                let message = match &bytes_val.original {
                     ValueSubTree::Str(s) => {
                         // Strip "str:" prefix if present
                         s.strip_prefix("str:").unwrap_or(s).to_string()
                     }
                     _ => String::new(),
-                }
+                };
+                self.step_writeln(format!(
+                    ".with_result(ExpectError({}, \"{}\"))",
+                    status_code,
+                    Self::escape_string(&message)
+                ));
             }
-            CheckValue::Star => String::new(),
+            CheckValue::Star => {
+                self.step_writeln(format!(".with_result(ExpectStatus({status_code}))"));
+            }
         };
 
-        self.step_writeln(format!(
-            ".with_result(ExpectError({}, \"{}\"))",
-            status_code,
-            Self::escape_string(&message)
-        ));
         self.step_write("        ");
     }
 
