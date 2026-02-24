@@ -22,7 +22,8 @@ impl<'a> TestGenerator<'a> {
                         let value_str = Self::format_check_value_for_storage(value);
                         self.step_writeln(format!(
                             "        .check_storage(\"{}\", \"{}\")",
-                            key.original, value_str
+                            Self::escape_string(&key.original),
+                            Self::escape_string(&value_str),
                         ));
                     }
 
