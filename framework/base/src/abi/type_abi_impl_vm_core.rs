@@ -238,11 +238,15 @@ impl TypeAbi for DurationMillis {
     type Unmanaged = Self;
 
     fn type_name() -> TypeName {
-        "DurationMillis".into()
+        "u64".into()
     }
 
     fn type_name_rust() -> TypeName {
         "DurationMillis".into()
+    }
+
+    fn type_name_specific() -> Option<TypeName> {
+        Some("DurationMillis".into())
     }
 }
 
@@ -252,11 +256,15 @@ impl TypeAbi for DurationSeconds {
     type Unmanaged = Self;
 
     fn type_name() -> TypeName {
-        "DurationSeconds".into()
+        "u64".into()
     }
 
     fn type_name_rust() -> TypeName {
         "DurationSeconds".into()
+    }
+
+    fn type_name_specific() -> Option<TypeName> {
+        Some("DurationSeconds".into())
     }
 }
 
@@ -266,11 +274,15 @@ impl TypeAbi for TimestampMillis {
     type Unmanaged = Self;
 
     fn type_name() -> TypeName {
-        "TimestampMillis".into()
+        "u64".into()
     }
 
     fn type_name_rust() -> TypeName {
         "TimestampMillis".into()
+    }
+
+    fn type_name_specific() -> Option<TypeName> {
+        Some("TimestampMillis".into())
     }
 }
 
@@ -280,10 +292,14 @@ impl TypeAbi for TimestampSeconds {
     type Unmanaged = Self;
 
     fn type_name() -> TypeName {
-        "TimestampSeconds".into()
+        "u64".into()
     }
 
     fn type_name_rust() -> TypeName {
         "TimestampSeconds".into()
+    }
+
+    fn type_name_specific() -> Option<TypeName> {
+        Some("TimestampSeconds".into())
     }
 }

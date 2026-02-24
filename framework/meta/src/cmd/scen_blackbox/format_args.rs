@@ -1,3 +1,4 @@
+use multiversx_sc::abi::TypeNames;
 use multiversx_sc_scenario::scenario::model::BytesValue;
 
 use super::{num_format, test_gen::TestGenerator};
@@ -9,12 +10,8 @@ impl<'a> TestGenerator<'a> {
     /// For types whose ABI name is ambiguous (e.g. time types all map to "u64"),
     /// the Rust type name is checked instead.
     /// Falls back to `ScenarioValueRaw::new` for unrecognized types.
-    pub(super) fn format_arg_value(
-        &mut self,
-        type_names: &multiversx_sc::abi::TypeNames,
-        arg: &BytesValue,
-    ) -> String {
-        match type_names.abi.as_str() {
+    pub(super) fn format_arg_value(&mut self, type_names: &TypeNames, arg: &BytesValue) -> String {
+        match type_names.specific_or_abi() {
             "bool" => {
                 let is_true = arg.value.len() == 1 && arg.value[0] == 1;
                 if is_true {
@@ -119,10 +116,7 @@ impl<'a> TestGenerator<'a> {
                 .and_then(|s| s.strip_suffix('>'))
             {
                 // Optional: consume one arg if available
-                let type_names = multiversx_sc::abi::TypeNames {
-                    abi: inner.to_string(),
-                    rust: String::new(),
-                };
+                let type_names = TypeNames::from_abi(inner.to_string());
                 let formatted = self.format_arg_value(&type_names, &args[arg_idx]);
                 result.push(formatted);
                 arg_idx += 1;
@@ -165,10 +159,8 @@ impl<'a> TestGenerator<'a> {
             for chunk in args.chunks(group_size) {
                 let mut fields = Vec::new();
                 for (j, arg) in chunk.iter().enumerate() {
-                    let type_names = multiversx_sc::abi::TypeNames {
-                        abi: field_types.get(j).cloned().unwrap_or_default(),
-                        rust: String::new(),
-                    };
+                    let type_names =
+                        TypeNames::from_abi(field_types.get(j).cloned().unwrap_or_default());
                     fields.push(self.format_arg_value(&type_names, arg));
                 }
                 items.push(format!("{}::new({})", multi_struct, fields.join(", ")));
@@ -177,10 +169,7 @@ impl<'a> TestGenerator<'a> {
             format!("MultiValueVec::from(vec![{}])", items.join(", "))
         } else {
             // Simple variadic (not multi)
-            let type_names = multiversx_sc::abi::TypeNames {
-                abi: inner_type.to_string(),
-                rust: String::new(),
-            };
+            let type_names = TypeNames::from_abi(inner_type.to_string());
 
             if args.is_empty() {
                 return "MultiValueVec::from(vec![])".to_string();

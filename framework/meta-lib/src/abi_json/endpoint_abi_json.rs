@@ -9,6 +9,11 @@ pub struct InputAbiJson {
     #[serde(rename = "type")]
     pub type_name: String,
 
+    #[serde(rename = "specificType")]
+    #[serde(default)]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub type_name_specific: Option<String>,
+
     /// Bool that is only serialized when true
     #[serde(default)]
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -20,6 +25,7 @@ impl From<&InputAbi> for InputAbiJson {
         InputAbiJson {
             arg_name: abi.arg_name.to_string(),
             type_name: abi.type_names.abi.clone(),
+            type_name_specific: abi.type_names.specific.clone(),
             multi_arg: if abi.multi_arg { Some(true) } else { None },
         }
     }
@@ -29,7 +35,11 @@ impl From<&InputAbiJson> for InputAbi {
     fn from(abi: &InputAbiJson) -> Self {
         InputAbi {
             arg_name: abi.arg_name.to_string(),
-            type_names: TypeNames::from_abi(abi.type_name.clone()),
+            type_names: TypeNames {
+                abi: abi.type_name.clone(),
+                rust: String::new(),
+                specific: abi.type_name_specific.clone(),
+            },
             multi_arg: abi.multi_arg.unwrap_or(false),
         }
     }
@@ -47,8 +57,15 @@ pub struct OutputAbiJson {
     #[serde(default)]
     #[serde(skip_serializing_if = "String::is_empty")]
     pub output_name: String,
+
     #[serde(rename = "type")]
     pub type_name: String,
+
+    #[serde(rename = "specificType")]
+    #[serde(default)]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub type_name_specific: Option<String>,
+
     /// Bool that is only serialized when true
     #[serde(default)]
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -60,6 +77,7 @@ impl From<&OutputAbi> for OutputAbiJson {
         OutputAbiJson {
             output_name: abi.output_name.clone(),
             type_name: abi.type_names.abi.clone(),
+            type_name_specific: abi.type_names.specific.clone(),
             multi_result: if abi.multi_result { Some(true) } else { None },
         }
     }
@@ -69,7 +87,11 @@ impl From<&OutputAbiJson> for OutputAbi {
     fn from(abi: &OutputAbiJson) -> Self {
         OutputAbi {
             output_name: abi.output_name.clone(),
-            type_names: TypeNames::from_abi(abi.type_name.clone()),
+            type_names: TypeNames {
+                abi: abi.type_name.clone(),
+                rust: String::new(),
+                specific: abi.type_name_specific.clone(),
+            },
             multi_result: abi.multi_result.unwrap_or(false),
         }
     }
