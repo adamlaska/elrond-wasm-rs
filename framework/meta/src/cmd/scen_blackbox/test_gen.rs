@@ -119,8 +119,7 @@ impl<'a> TestGenerator<'a> {
 
 /// Main entry point for blackbox test generation
 /// Assumes the current directory is the contract root directory
-pub fn generate_scen_blackbox_tests(overwrite: bool, abi: &ContractAbi) {
-    let contract_path = Path::new(".");
+pub fn generate_scen_blackbox_tests(contract_path: &Path, overwrite: bool, abi: &ContractAbi) {
     let scenarios_dir = contract_path.join("scenarios");
 
     if !scenarios_dir.exists() {

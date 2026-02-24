@@ -63,12 +63,5 @@ fn generate_for_contract(dir: &RelevantDirectory, overwrite: bool) {
 
     let abi: multiversx_sc::abi::ContractAbi = abi_json.into();
 
-    // Change to contract directory and generate
-    let original_dir = std::env::current_dir().expect("Failed to get current directory");
-    std::env::set_current_dir(&dir.path).expect("Failed to change directory");
-
-    generate_scen_blackbox_tests(overwrite, &abi);
-
-    // Return to original directory
-    std::env::set_current_dir(original_dir).expect("Failed to restore directory");
+    generate_scen_blackbox_tests(&dir.path, overwrite, &abi);
 }
