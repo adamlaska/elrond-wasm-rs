@@ -160,7 +160,7 @@ impl<'a> TestGenerator<'a> {
     }
 
     pub(super) fn escape_string(s: &str) -> String {
-        s.replace('\\', "\\\\").replace('"', "\\\"")
+        s.chars().flat_map(char::escape_default).collect()
     }
 
     // -------------------------------------------------------------------------
