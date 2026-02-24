@@ -27,7 +27,7 @@ impl<'a> TestGenerator<'a> {
                 num_format::format_signed(&arg.value, &type_names.abi)
             }
             "TokenIdentifier" | "EgldOrEsdtTokenIdentifier" | "TokenId" => {
-                self.format_token_id(arg)
+                self.format_token_id_value(arg)
             }
             "H256" if arg.value.len() == 32 => self.format_h256(arg),
             "TimestampMillis" | "TimestampSeconds" | "DurationMillis" | "DurationSeconds" => {

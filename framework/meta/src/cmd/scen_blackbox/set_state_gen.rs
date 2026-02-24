@@ -37,7 +37,7 @@ impl<'a> TestGenerator<'a> {
             }
 
             for (token_key, esdt) in &account.esdt {
-                let token_const = self.format_token_id_from_key(token_key);
+                let token_const = self.format_token_id_key(token_key);
                 self.generate_esdt_balance_calls(&token_const, esdt);
             }
 

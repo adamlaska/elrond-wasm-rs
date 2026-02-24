@@ -1,3 +1,4 @@
+use multiversx_sc::chain_core::EGLD_000000_TOKEN_IDENTIFIER;
 use multiversx_sc_scenario::scenario::model::{AddressValue, BytesKey, BytesValue, Step};
 use multiversx_sc_scenario::scenario_format::serde_raw::ValueSubTree;
 
@@ -169,27 +170,22 @@ impl<'a> TestGenerator<'a> {
 
     /// Formats a token identifier from a BytesValue into a constant reference.
     /// Generates a `TestTokenId` constant if one doesn't already exist.
-    pub(super) fn format_token_id(&mut self, token_id: &BytesValue) -> String {
-        let original_str = match &token_id.original {
-            ValueSubTree::Str(s) => s.as_str(),
-            _ => return format!("ScenarioValueRaw::new(\"{:?}\")", token_id.value),
-        };
-
-        self.format_token_id_str(original_str)
+    pub(super) fn format_token_id_value(&mut self, token_id: &BytesValue) -> String {
+        self.format_token_id_str(&String::from_utf8_lossy(&token_id.value))
     }
 
     /// Formats a token identifier from a BytesKey (used in setState ESDT maps).
-    pub(super) fn format_token_id_from_key(&mut self, key: &BytesKey) -> String {
-        self.format_token_id_str(&key.original)
+    pub(super) fn format_token_id_key(&mut self, key: &BytesKey) -> String {
+        self.format_token_id_str(&String::from_utf8_lossy(&key.value))
     }
 
     /// Core token ID formatting logic, shared by `format_token_id` and `format_token_id_from_key`.
-    fn format_token_id_str(&mut self, original_str: &str) -> String {
-        if original_str == "str:EGLD-000000" {
+    fn format_token_id_str(&mut self, name: &str) -> String {
+        if name == EGLD_000000_TOKEN_IDENTIFIER {
             // Use the built-in constant for EGLD-000000
             "TestTokenId::EGLD_000000".to_string()
         } else {
-            self.consts.get_or_create_token_id(original_str)
+            self.consts.get_or_create_token_id(name)
         }
     }
 

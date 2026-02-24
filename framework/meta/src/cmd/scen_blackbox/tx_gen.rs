@@ -196,7 +196,7 @@ impl<'a> TestGenerator<'a> {
                 nonce, amount
             ));
         } else {
-            let token_const = self.format_token_id(&esdt.esdt_token_identifier);
+            let token_const = self.format_token_id_value(&esdt.esdt_token_identifier);
             self.step_writeln(format!(
                 ".payment(Payment::try_new({}, {}, {}).unwrap())",
                 token_const, nonce, amount
