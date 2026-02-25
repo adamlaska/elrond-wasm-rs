@@ -3,7 +3,7 @@ use std::num::NonZeroU64;
 use multiversx_sc_scenario::imports::*;
 use payable_features::payable_features_proxy;
 
-const PF_PATH_EXPR: MxscPath = MxscPath::new("output/payable-features.mxsc.json");
+const PAYABLE_FEATURES_CODE_PATH: MxscPath = MxscPath::new("output/payable-features.mxsc.json");
 const PAYABLE_FEATURES_ADDRESS: TestSCAddress = TestSCAddress::new("payable-features");
 const USER: TestAddress = TestAddress::new("an-account");
 const TOKEN_1: TestTokenId = TestTokenId::new("TOK-000001");
@@ -18,7 +18,10 @@ fn world() -> ScenarioWorld {
     let mut blockchain = ScenarioWorld::new().executor_config(ExecutorConfig::full_suite());
 
     blockchain.set_current_dir_from_workspace("contracts/feature-tests/payable-features");
-    blockchain.register_contract(PF_PATH_EXPR, payable_features::ContractBuilder);
+    blockchain.register_contract(
+        PAYABLE_FEATURES_CODE_PATH,
+        payable_features::ContractBuilder,
+    );
     blockchain
 }
 
@@ -37,7 +40,7 @@ fn init_account(world: &mut ScenarioWorld) {
         .typed(payable_features_proxy::PayableFeaturesProxy)
         .init()
         .new_address(PAYABLE_FEATURES_ADDRESS)
-        .code(PF_PATH_EXPR)
+        .code(PAYABLE_FEATURES_CODE_PATH)
         .run();
 }
 
