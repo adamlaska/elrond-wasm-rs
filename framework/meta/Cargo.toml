@@ -57,6 +57,10 @@ features = ["alloc", "num-bigint"]
 version = "=0.64.2"
 path = "../snippets"
 
+[dependencies.multiversx-sc-scenario]
+version = "=0.64.2"
+path = "../scenario"
+
 [dependencies.multiversx-sdk]
 version = "=0.14.2"
 path = "../../sdk/core"
