@@ -282,8 +282,10 @@ impl<'a> TestGenerator<'a> {
         if formatted.len() == 1 {
             self.step_writeln(format!(".returns(ExpectValue({}))", formatted[0]));
         } else {
+            let n = formatted.len();
             self.step_writeln(format!(
-                ".returns(ExpectValue(({},)))",
+                ".returns(ExpectValue(MultiValue{}::new({})))",
+                n,
                 formatted.join(", ")
             ));
         }

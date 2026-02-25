@@ -89,6 +89,12 @@ impl From<String> for BytesValue {
     }
 }
 
+impl From<ValueSubTree> for BytesValue {
+    fn from(from: ValueSubTree) -> Self {
+        BytesValue::interpret_from(from, &InterpreterContext::default())
+    }
+}
+
 impl From<&[u8]> for BytesValue {
     fn from(bytes: &[u8]) -> Self {
         let expr = format!("0x{}", hex::encode(bytes));

@@ -22,7 +22,10 @@ pub use crate::{
         },
         run_vm::ExecutorConfig,
     },
-    scenario_format::interpret_trait::{InterpretableFrom, InterpreterContext},
+    scenario_format::{
+        interpret_trait::{InterpretableFrom, InterpreterContext},
+        serde_raw::ValueSubTree,
+    },
     whitebox_legacy::*,
 };
 
