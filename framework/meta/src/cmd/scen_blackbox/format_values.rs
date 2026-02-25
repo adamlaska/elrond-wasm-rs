@@ -205,7 +205,7 @@ impl TestGenerator {
                     "TimestampMillis" | "TimestampSeconds" | "DurationMillis"
                     | "DurationSeconds" => {
                         let inner = num_format::format_unsigned(&arg.value, "u64");
-                        format!("{}::new({})", type_names.abi, inner)
+                        format!("{}::new({})", base, inner)
                     }
                     "array" => {
                         // e.g. array32<u8> → type_args = ["32", "u8"]
