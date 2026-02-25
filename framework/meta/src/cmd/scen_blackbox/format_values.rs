@@ -47,9 +47,6 @@ impl TestGenerator {
         let mut first = true;
         if let Some(inputs) = inputs {
             for input_abi in inputs {
-                if input.is_empty() {
-                    break;
-                }
                 if !first {
                     result.push_str(", ");
                 }
@@ -170,6 +167,13 @@ impl TestGenerator {
                     })
                     .collect();
                 format!("MultiValue{}::new({})", n, fields.join(", "))
+            }
+
+            "ignore" => {
+                if !input.is_empty() {
+                    let _ = input.next_item();
+                }
+                "IgnoreValue".to_string()
             }
 
             _ => {
