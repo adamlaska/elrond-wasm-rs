@@ -20,10 +20,13 @@ impl ContractScenarios {
             return None;
         }
 
-        let scenario_files = scenario_loader::load_scenario_files(&scenarios_dir);
+        let mut scenario_files = scenario_loader::load_scenario_files(&scenarios_dir);
         if scenario_files.is_empty() {
             return None;
         }
+
+        // ensures that the order is deterministic and doesn't depend on the filesystem
+        scenario_files.sort_by(|a, b| a.file_name.cmp(&b.file_name));
 
         let cargo_toml_path = contract_path.join("Cargo.toml");
         let cargo_toml = CargoTomlContents::load_from_file(&cargo_toml_path);
