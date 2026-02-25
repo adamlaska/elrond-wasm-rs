@@ -149,13 +149,15 @@ impl<'a> TestGenerator<'a> {
                 format!("MultiValueVec::from(vec![{}])", items.join(", "))
             }
 
-            "optional" | "OptionalValue" => {
+            "optional" => {
                 if input.is_empty() {
-                    return "OptionalValue::None".to_string();
+                    "OptionalValue::None".to_string()
+                } else {
+                    let inner = type_args[0].clone();
+                    let inner_type_names = TypeNames::from_abi(inner);
+                    let inner_formatted = self.format_arg_value(&inner_type_names, input);
+                    format!("OptionalValue::Some({inner_formatted})")
                 }
-                let inner = type_args[0].clone();
-                let inner_type_names = TypeNames::from_abi(inner);
-                self.format_arg_value(&inner_type_names, input)
             }
 
             "multi" => {
@@ -187,6 +189,10 @@ impl<'a> TestGenerator<'a> {
                     }
                     "i8" | "i16" | "i32" | "i64" | "isize" | "BigInt" => {
                         num_format::format_signed(&arg.value, &type_names.abi)
+                    }
+                    "NonZeroBigUint" => {
+                        let inner = num_format::format_unsigned(&arg.value, "BigUint");
+                        format!("NonZeroBigUint::try_from({inner}).unwrap()")
                     }
                     "TokenIdentifier" | "EgldOrEsdtTokenIdentifier" | "TokenId" => {
                         self.format_token_id_value(arg)
