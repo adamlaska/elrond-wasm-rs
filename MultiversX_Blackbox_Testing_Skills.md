@@ -1,0 +1,897 @@
+# MultiversX Blackbox Testing Skills Guide
+
+This guide encodes the know-how for writing comprehensive blackbox tests for MultiversX smart contracts, based on real-world experience with multiple contracts (digital-cash, adder, crowdfunding, price-aggregator, payable-features, scenario-tester, etc.).
+
+---
+
+## 0. Auto-Generated Tests from Scenarios
+
+Blackbox tests can be auto-generated from `.scen.json` scenario files. The generator produces a Rust file with this structure:
+
+```rust
+use multiversx_sc_scenario::imports::*;
+
+use my_contract::*;
+
+const CODE_PATH: MxscPath = MxscPath::new("output/my-contract.mxsc.json");
+const SOME_ADDRESS: TestAddress = TestAddress::new("some-address");
+const SOME_SC: TestSCAddress = TestSCAddress::new("some-sc");
+const MY_TOKEN: TestTokenId = TestTokenId::new("MYTOKEN-123456");
+
+fn world() -> ScenarioWorld { ... }
+
+#[test]
+fn my_scenario_scen() {
+    let mut world = world();
+    my_scenario_scen_steps(&mut world);
+}
+
+pub fn my_scenario_scen_steps(world: &mut ScenarioWorld) {
+    // Accounts are set up inline; contracts with pre-existing code skip deploy tx
+    world.account(SOME_ADDRESS).nonce(0u64).balance(1_000u64);
+    world.account(SOME_SC).nonce(0u64).balance(0u64).code(CODE_PATH);
+
+    world
+        .tx()
+        .id("my-tx")
+        .from(SOME_ADDRESS)
+        .to(SOME_SC)
+        .typed(my_contract_proxy::MyContractProxy)
+        .my_endpoint(arg1, arg2)
+        .payment(Payment::try_new(TestTokenId::EGLD_000000, 0, 1_000u64).unwrap())
+        .returns(ExpectValue(ScenarioValueRaw::new("...")))
+        .run();
+}
+```
+
+Key observations from the generator output:
+
+- Each scenario file produces **one `*_scen()` test** and one **`pub fn *_scen_steps()`** function. This separation allows hand-written tests to **compose generated step functions** for more complex scenarios.
+- Accounts with pre-loaded code (i.e., not deployed by the test) are set up via `world.account(...).code(CODE_PATH)` directly, skipping a deploy transaction.
+- All token constants use `TestTokenId` (not `TestTokenIdentifier`).
+- Payments use `Payment::try_new(token_id, nonce, amount).unwrap()`.
+- Expected return values may use `ScenarioValueRaw::new(...)` for raw scenario encoding when the type is complex.
+- Transaction IDs exactly mirror the IDs in the `.scen.json` file; empty IDs (`""`) are allowed.
+
+**Reusing auto-generated steps in hand-written tests:**
+
+```rust
+#[test]
+fn complex_scenario() {
+    let mut world = world();
+    // Reuse generated setup
+    generated::fund_egld_scen_steps(&mut world);
+    // Then add more steps
+    world.tx()...run();
+}
+```
+
+---
+
+## 1. File Structure and Setup
+
+### Essential Imports
+
+```rust
+use my_contract::my_contract_proxy;      // Contract-specific proxy
+use multiversx_sc_scenario::imports::*;  // Core testing framework
+```
+
+For contracts that need BLS or other crypto in tests:
+```rust
+use multiversx_sc_scenario::{
+    imports::*,
+    multiversx_chain_vm::crypto_functions_bls::verify_bls_aggregated_signature,
+    scenario_model::TxResponseStatus,
+};
+```
+
+### Top-Level Constants
+
+Declare **all** addresses, token IDs, code paths, and binary constants at the top of the file.
+
+```rust
+// Addresses
+const OWNER_ADDRESS: TestAddress = TestAddress::new("owner");
+const USER1_ADDRESS: TestAddress = TestAddress::new("acc1");
+const USER2_ADDRESS: TestAddress = TestAddress::new("acc2");
+const SC_ADDRESS: TestSCAddress = TestSCAddress::new("the-contract");
+
+// Code path
+const CODE_PATH: MxscPath = MxscPath::new("output/my-contract.mxsc.json");
+
+// Token IDs – TestTokenId (alias) is used in generated code; TestTokenIdentifier works the same
+const MY_TOKEN: TestTokenId = TestTokenId::new("MYTOKEN-123456");
+const NFT_ID: TestTokenIdentifier = TestTokenIdentifier::new("NFT-123456");
+
+// Binary constants – declare as typed arrays, never inline in tx calls
+const DEPOSIT_KEY_01: [u8; 32] =
+    hex!("d0474a3a065d3f0c0a62ae680ef6435e48eb482899d2ae30ff7a3a4b0ef19c60");
+
+// ED25519 signatures are exactly 64 bytes
+const SIGNATURE_01: [u8; 64] = hex!(
+    "443c75ceadb9ec42acff7e1b92e0305182279446c1d6c0502959484c147a0430\
+     d3f96f0b988e646f6736d5bf8e4a843d8ba7730d6fa7e60f0ef3edd225ce630f"
+);
+
+// Other byte-slice constants
+const ACCEPT_FUNDS_FUNC_NAME: &[u8] = b"accept_funds";
+const FOURTH_ATTRIBUTES: &[u8] = b"SomeAttributeBytes";
+const FOURTH_URIS: &[&[u8]] = &[b"FirstUri", b"SecondUri"];
+```
+
+---
+
+## 2. World Setup
+
+### Minimal `world()` Function
+
+```rust
+fn world() -> ScenarioWorld {
+    let mut blockchain = ScenarioWorld::new();
+    blockchain.set_current_dir_from_workspace("contracts/examples/my-contract");
+    blockchain.register_contract(CODE_PATH, my_contract::ContractBuilder);
+    blockchain
+}
+```
+
+For tests that need the full VM execution suite (payable endpoints, block info, etc.):
+```rust
+fn world() -> ScenarioWorld {
+    let mut blockchain = ScenarioWorld::new().executor_config(ExecutorConfig::full_suite());
+    blockchain.set_current_dir_from_workspace("contracts/feature-tests/my-contract");
+    blockchain.register_contract(CODE_PATH, my_contract::ContractBuilder);
+    blockchain
+}
+```
+
+For tests involving multiple contracts, register each one:
+```rust
+blockchain.register_contract(VAULT_PATH, vault::ContractBuilder);
+blockchain.register_contract(FORWARDER_PATH, forwarder::ContractBuilder);
+```
+
+### Setting Up Accounts
+
+Accounts can be set up at `world()` construction time or inside tests. Both styles are valid.
+
+**In `world()` (shared setup, useful for seeding with storage):**
+```rust
+fn world() -> ScenarioWorld {
+    let mut blockchain = ScenarioWorld::new();
+    // ...register_contract...
+
+    blockchain
+        .account(OWNER_ADDRESS)
+        .nonce(1)
+        .balance(100)
+        .commit();
+
+    // SC with pre-loaded code and storage (no deploy tx needed)
+    blockchain
+        .account(SC_ADDRESS)
+        .nonce(1)
+        .balance(100)
+        .owner(OWNER_ADDRESS)
+        .code(CODE_PATH)
+        .storage_mandos("str:mm-num-entries", "3")
+        .storage_mandos("str:mm-key|u32:0", "str:key0")
+        .commit();
+
+    blockchain
+}
+```
+
+**In a test-state struct `new()` (most common for complex contracts):**
+```rust
+impl MyTestState {
+    fn new() -> Self {
+        let mut world = world();
+
+        world.account(OWNER_ADDRESS).nonce(1).balance(100_000);
+        world
+            .account(USER1_ADDRESS)
+            .nonce(0)
+            .balance(1_000_000)
+            .esdt_balance(MY_TOKEN, 500);
+
+        // Pre-reserve SC address (optional – also done via .new_address() in deploy)
+        world.new_address(OWNER_ADDRESS, 1, SC_ADDRESS);
+
+        Self { world }
+    }
+}
+```
+
+**In the generated style (account set up per scenario function, no `.commit()`):**
+```rust
+pub fn my_scen_steps(world: &mut ScenarioWorld) {
+    world.account(USER_ADDRESS).nonce(0u64).balance(10_000u64)
+        .esdt_balance(MY_TOKEN, 500u64)
+        .esdt_nft_balance(SFT_ID, 5, 20u64, ())
+        ;
+    world.account(SC_ADDRESS).nonce(0u64).balance(0u64).code(CODE_PATH);
+    // ...
+}
+```
+
+Additional account properties:
+
+```rust
+world.account(OWNER_ADDRESS)
+    .nonce(1)
+    .balance(100)
+    .esdt_balance(TOKEN_ID, 500)
+    .esdt_nft_balance(NFT_ID, 2, 1, ())           // (token, nonce, amount, attributes – () means empty)
+    .esdt_nft_last_nonce(NFT_ID, 5)
+    .esdt_roles(NFT_TOKEN_ID, vec!["ESDTRoleNFTCreate".to_string(), "ESDTRoleNFTUpdateAttributes".to_string()])
+    .esdt_nft_all_properties(NFT_ID, 2, 1, managed_buffer!(FOURTH_ATTRIBUTES), 1000, None::<Address>, (), uris_vec)
+    .owner(OWNER_ADDRESS)
+    .code(CODE_PATH)
+    .storage_mandos("str:key", "value")
+    .commit();  // commit() is optional – state is applied lazily if omitted
+```
+
+---
+
+## 3. Contract Deployment
+
+### Standard Deployment
+
+```rust
+world
+    .tx()
+    .id("deploy")
+    .from(OWNER_ADDRESS)
+    .typed(my_contract_proxy::MyContractProxy)
+    .init(constructor_arg1, constructor_arg2)
+    .code(CODE_PATH)
+    .new_address(SC_ADDRESS)   // pre-declares where the SC will land
+    .run();
+```
+
+`.new_address()` on the account builder is an alternative way to pre-reserve the address:
+```rust
+world.account(OWNER_ADDRESS).nonce(1).new_address(OWNER_ADDRESS, 1, SC_ADDRESS);
+```
+
+Also works inline on the tx:
+```rust
+world.new_address(OWNER_ADDRESS, 1, SC_ADDRESS);
+```
+
+### Capturing the Deployed Address
+
+```rust
+let new_address = world
+    .tx()
+    .from(OWNER_ADDRESS)
+    .typed(my_contract_proxy::MyContractProxy)
+    .init(5u32)
+    .code(CODE_PATH)
+    .new_address(SC_ADDRESS)
+    .returns(ReturnsNewAddress)
+    .run();
+assert_eq!(new_address, SC_ADDRESS);
+```
+
+### Deploy in a State Method (Chainable)
+
+```rust
+impl MyTestState {
+    fn deploy(&mut self) -> &mut Self {
+        let oracles = MultiValueVec::from(
+            self.oracles.iter().map(|o| o.to_address()).collect::<Vec<_>>()
+        );
+        self.world
+            .tx()
+            .from(OWNER_ADDRESS)
+            .typed(my_proxy::MyProxy)
+            .init(param1, oracles)
+            .code(CODE_PATH)
+            .run();
+        self
+    }
+}
+```
+
+---
+
+## 4. Transactions and Queries
+
+### General Transaction Shape
+
+```rust
+world
+    .tx()
+    .id("descriptive-tx-id")   // Optional but strongly recommended
+    .from(SENDER_ADDRESS)
+    .to(SC_ADDRESS)
+    .typed(my_contract_proxy::MyContractProxy)
+    .my_endpoint(arg1, arg2)
+    // payment (see below)
+    // returns (see below)
+    .run();
+```
+
+### Queries (Read-Only Calls)
+
+```rust
+let value = world
+    .query()
+    .id("my-query")
+    .to(SC_ADDRESS)
+    .typed(my_contract_proxy::MyContractProxy)
+    .my_view_endpoint()
+    .returns(ReturnsResultUnmanaged)
+    .run();
+```
+
+### Payment Types
+
+| Scenario | Code |
+|---|---|
+| EGLD only | `.egld(1_000u64)` |
+| Single ESDT (legacy) | `.esdt(TestEsdtTransfer(TOKEN_ID, 0, 50))` |
+| Single typed payment | `.payment((TOKEN_ID, nonce, amount))` |
+| Single `Payment` | `.payment(Payment::try_new(TOKEN_ID, nonce, amount).unwrap())` |
+| Multiple payments (chained) | `.payment(...).payment(...)` |
+| EGLD-or-ESDT | `.egld_or_single_esdt(&EgldOrEsdtTokenIdentifier::esdt(TOKEN), nonce, &BigUint::from(100u64))` |
+| `NonZeroU64` amount | `.payment((TOKEN_ID, 0, NonZeroU64::new(100).unwrap()))` |
+| `NonZeroBigUint` amount | `.payment((TOKEN_ID, 0, NonZeroBigUint::try_from(400u32).unwrap()))` |
+| Legacy multi-ESDT | `.multi_esdt(vec![TestEsdtTransfer(T1,0,50), TestEsdtTransfer(T2,0,50)])` |
+
+`TestTokenId::EGLD_000000` is the canonical EGLD token identifier in tests.
+
+Examples:
+
+```rust
+// EGLD
+.egld(1_000)
+
+// Single ESDT
+.payment((MY_TOKEN, 0, AMOUNT_100))
+
+// Mixed EGLD + ESDT
+.payment(Payment::try_new(TestTokenId::EGLD_000000, 0, 1_000u64).unwrap())
+.payment(Payment::try_new(MY_TOKEN, 0, 100u64).unwrap())
+
+// Multiple ESDTs via chain
+.payment(Payment::try_new(TOKEN1, 0, 50u64).unwrap())
+.payment(Payment::try_new(TOKEN2, 0, 50u64).unwrap())
+.payment(Payment::try_new(TOKEN3, 0, 50u64).unwrap())
+```
+
+### Return Value Handling
+
+| What you want | How |
+|---|---|
+| Ignore result (success only) | omit `.returns()` |
+| Assert exact value | `.returns(ExpectValue(expected))` |
+| Get the value (managed types) | `.returns(ReturnsResult)` |
+| Get value (unmanaged/Rust native) | `.returns(ReturnsResultUnmanaged)` |
+| Get as specific type | `.returns(ReturnsResultAs::<MyType>::new())` |
+| Get new SC address | `.returns(ReturnsNewAddress)` |
+| Get tx hash | `.returns(ReturnsTxHash)` |
+| Multiple returns | `.returns(A).returns(B)` → returned as tuple |
+| Handle success or error gracefully | `.returns(ReturnsHandledOrError::new().returns(...))` |
+
+### Capturing Multiple Return Values
+
+```rust
+let (new_address, tx_hash) = world
+    .tx()
+    .from(OWNER_ADDRESS)
+    .typed(my_proxy::MyProxy)
+    .init(5u32)
+    .code(CODE_PATH)
+    .new_address(SC_ADDRESS)
+    .tx_hash([11u8; 32])
+    .returns(ReturnsNewAddress)
+    .returns(ReturnsTxHash)
+    .run();
+
+assert_eq!(new_address, SC_ADDRESS);
+assert_eq!(tx_hash.as_array(), &[11u8; 32]);
+```
+
+For `MultiValue` returns:
+```rust
+let (a, b) = world
+    .tx()
+    .from(OWNER_ADDRESS).to(SC_ADDRESS)
+    .typed(my_proxy::MyProxy)
+    .multi_return(1u32)
+    .returns(ReturnsResultUnmanaged)
+    .run()
+    .into_tuple();
+```
+
+### Error Expectations
+
+Two styles – both are valid. Prefer `.with_result()` in generated tests, `.returns()` in handwritten:
+
+```rust
+// Style 1 – generated tests
+.with_result(ExpectError(4, "exact error message"))
+.with_result(ExpectStatus(4))
+.with_result(ExpectMessage("error text"))
+
+// Style 2 – handwritten tests
+.returns(ExpectError(4, "exact error message"))
+```
+
+`4` is the standard `ReturnCode::UserError`.
+
+### Handling Errors Programmatically
+
+```rust
+let result = world
+    .tx()
+    .from(OWNER_ADDRESS).to(SC_ADDRESS)
+    .typed(my_proxy::MyProxy)
+    .sc_panic()
+    .returns(ReturnsHandledOrError::new())
+    .run();
+
+assert_eq!(
+    result,
+    Err(TxResponseStatus::new(ReturnCode::UserError, "sc_panic! example"))
+);
+
+// On success
+let result = world
+    .tx()
+    .from(OWNER_ADDRESS).to(SC_ADDRESS)
+    .typed(my_proxy::MyProxy)
+    .add(1u32)
+    .returns(ReturnsHandledOrError::new())
+    .run();
+assert_eq!(result, Ok(()));
+```
+
+Also works with queries:
+```rust
+let result = world
+    .query()
+    .to(SC_ADDRESS)
+    .typed(my_proxy::MyProxy)
+    .sum()
+    .returns(ReturnsHandledOrError::new().returns(ReturnsResultUnmanaged))
+    .run();
+assert_eq!(result, Ok(RustBigUint::from(5u32)));
+```
+
+---
+
+## 5. Block State Manipulation
+
+```rust
+// Set timestamp in milliseconds
+world.current_block().block_timestamp_millis(TimestampMillis::new(86_400_000u64));
+
+// Set timestamp in seconds
+world.current_block().block_timestamp_seconds(100u64);
+
+// Other block properties
+world.current_block()
+    .block_nonce(10)
+    .block_round(10)
+    .block_epoch(1);
+```
+
+Time constants:
+```rust
+TimestampMillis::new(86_400_000u64)  // 24 hours in ms
+TimestampMillis::zero()
+DurationMillis::new(6000)            // 6 seconds
+```
+
+---
+
+## 6. State Verification
+
+### Account Balance Checks
+
+```rust
+world
+    .check_account(USER1_ADDRESS)
+    .nonce(3)
+    .balance(expected_egld_balance)
+    .esdt_balance(TOKEN_ID, expected_token_balance)
+    .esdt_nft_balance_and_attributes(NFT_ID, nonce, amount, "expected_attributes")
+    .commit();  // commit() is optional for checks
+```
+
+Chain multiple accounts:
+```rust
+world
+    .check_account(OWNER_ADDRESS).nonce(3).balance(100)
+    .check_account(SC_ADDRESS).check_storage("str:sum", "6")
+    .commit();
+```
+
+### Contract Storage Checks
+
+Storage value encoding mirrors the scenario JSON format:
+
+```rust
+world.check_account(SC_ADDRESS)
+    // Simple values
+    .check_storage("str:feesDisabled", "false")
+    .check_storage("str:sum", "6")
+    // BigUint stored as map value
+    .check_storage("str:baseFee|nested:str:EGLD-000000", "10")
+    // Nested struct (deposit entry)
+    .check_storage(
+        "str:deposit|0x487bd4010b50c24a02018345fe5171edf4182e6294325382c75ef4c4409f01bd",
+        "address:acc2|u32:1|nested:str:CASHTOKEN-123456|u64:0|biguint:50|u64:86400_000|0x01|nested:str:EGLD-000000|biguint:1,000"
+    )
+    // Map of fees
+    .check_storage("str:collectedFees", "nested:str:EGLD-000000|biguint:10")
+    // String value
+    .check_storage("str:otherMapper", "str:SomeValueInStorage");
+```
+
+`check_storage` is a **partial check** – only listed keys are verified, others are ignored. This allows focused verification without enumerating all keys.
+
+---
+
+## 7. Test Organization Patterns
+
+### Pattern A – Composable Step Functions (Generated Style)
+
+Best for translating scenario files and for building on top of generated tests:
+
+```rust
+#[test]
+fn claim_egld_scen() {
+    let mut world = world();
+    claim_egld_scen_steps(&mut world);
+}
+
+pub fn claim_egld_scen_steps(world: &mut ScenarioWorld) {
+    // Reuse a prior step function as setup
+    fund_egld_and_esdt_scen_steps(world);
+    // Then add more steps specific to this scenario
+    world.tx()...run();
+    world.check_account(SC_ADDRESS)...;
+}
+```
+
+Composition is the key advantage: later scenario tests call earlier ones as setup, building up state incrementally.
+
+### Pattern B – Test State Struct (Handwritten Style)
+
+Best for complex contracts with many helper operations and shared mutable state:
+
+```rust
+struct MyTestState {
+    world: ScenarioWorld,
+    oracles: Vec<AddressValue>,  // dynamic data alongside world
+}
+
+impl MyTestState {
+    fn new() -> Self {
+        let mut world = world();
+        world.account(OWNER_ADDRESS).nonce(1);
+        world.current_block().block_timestamp_seconds(100);
+        world.new_address(OWNER_ADDRESS, 1, SC_ADDRESS);
+        Self { world, oracles: Vec::new() }
+    }
+
+    fn deploy(&mut self) -> &mut Self {
+        self.world.tx()
+            .from(OWNER_ADDRESS)
+            .typed(my_proxy::MyProxy)
+            .init(/* args */)
+            .code(CODE_PATH)
+            .run();
+        self
+    }
+
+    fn submit(&mut self, from: &AddressValue, timestamp: u64, price: u64) {
+        self.world.tx()
+            .from(from)
+            .to(SC_ADDRESS)
+            .typed(my_proxy::MyProxy)
+            .submit(EGLD_TICKER, USD_TICKER, timestamp, price, DECIMALS)
+            .run();
+    }
+
+    fn submit_and_expect_err(&mut self, from: &AddressValue, timestamp: u64, price: u64, err: &str) {
+        self.world.tx()
+            .from(from).to(SC_ADDRESS)
+            .typed(my_proxy::MyProxy)
+            .submit(EGLD_TICKER, USD_TICKER, timestamp, price, DECIMALS)
+            .with_result(ExpectError(4, err))
+            .run();
+    }
+}
+
+#[test]
+fn full_scenario_test() {
+    let mut state = MyTestState::new();
+    state.deploy();
+    state.submit(&state.oracles[0].clone(), 100, 100_00);
+}
+```
+
+Methods returning `-> &mut Self` enable chaining:
+```rust
+state.deploy().configure().setup_users();
+```
+
+### Pattern C – Simple Setup Function
+
+Good for small contracts with little shared state:
+
+```rust
+fn setup() -> ScenarioWorld {
+    let mut world = world();
+    world.account(OWNER_ADDRESS).nonce(1).new_address(OWNER_ADDRESS, 1, SC_ADDRESS);
+    world.tx()
+        .from(OWNER_ADDRESS)
+        .typed(my_proxy::MyProxy)
+        .init()
+        .code(CODE_PATH)
+        .run();
+    world
+}
+
+#[test]
+fn my_test() {
+    let mut world = setup();
+    world.tx()...run();
+}
+```
+
+---
+
+## 8. Common Type Conversions
+
+```rust
+// Binary data
+ManagedByteArray::new_from_bytes(&DEPOSIT_KEY)
+
+// BigUint
+BigUint::from(10u32)
+BigUint::from(1_000_000u64)
+
+// Timestamps
+TimestampMillis::new(86_400_000u64)
+
+// Token IDs
+TOKEN_ID.to_token_id()               // TestTokenIdentifier → TokenIdentifier
+TOKEN_ID.to_esdt_token_identifier()  // TestTokenIdentifier → EsdtTokenIdentifier
+EgldOrEsdtTokenIdentifier::egld()
+EgldOrEsdtTokenIdentifier::esdt(TOKEN_ID)
+
+// MultiValueVec
+MultiValueVec::from(vec![addr1, addr2])
+
+// Addresses in multi-value contexts
+AddressValue::from(OWNER_ADDRESS).to_address()
+
+// Non-zero amounts
+NonZeroU64::new(100).unwrap()
+NonZeroBigUint::try_from(400u32).unwrap()
+
+// EsdtTokenPayment (for assertions)
+EsdtTokenPayment::new(TOKEN_ID.to_esdt_token_identifier(), 0, BigUint::from(100u32))
+
+// Payment
+Payment::new(TOKEN_ID, 0, AMOUNT_100)
+Payment::try_new(TOKEN_ID, 0, 100u64).unwrap()
+```
+
+---
+
+## 9. Tracing and Snapshots
+
+```rust
+// Record all transactions into a trace
+world.start_trace();
+
+// Write the accumulated trace to a scenario JSON file
+world.write_scenario_trace("trace/my_trace.scen.json");
+
+// Compare with a golden file
+let generated = std::fs::read_to_string("trace/my_trace.scen.json").unwrap();
+let expected  = std::fs::read_to_string("trace/expected_trace.scen.json").unwrap();
+assert_eq!(generated, expected, "Generated trace does not match expected trace");
+```
+
+`start_trace()` is called at the very beginning of the test. Traces are useful for generating golden scenario files from a passing hand-written test.
+
+---
+
+## 10. Advanced Patterns
+
+### Dynamic Address Lists
+
+```rust
+let mut oracles = Vec::new();
+for i in 1..=NR_ORACLES {
+    let address_name = format!("oracle{i}");
+    let address = TestAddress::new(&address_name);
+    let address_value = AddressValue::from(address);
+    world.account(address).nonce(1).balance(STAKE_AMOUNT);
+    oracles.push(address_value);
+}
+
+// Use later in transactions
+for address in oracles.iter() {
+    world.tx()
+        .from(address)
+        .to(SC_ADDRESS)
+        .typed(my_proxy::MyProxy)
+        .stake()
+        .egld(STAKE_AMOUNT)
+        .run();
+}
+```
+
+### Pre-Seeding a Contract Account (No Deploy Tx)
+
+When a test does not need to exercise the deploy path:
+
+```rust
+world
+    .account(VAULT_ADDRESS)
+    .nonce(1)
+    .code(VAULT_PATH)
+    .esdt_roles(NFT_TOKEN_ID, vec!["ESDTRoleNFTCreate".to_string()]);
+```
+
+### Tx Hash Injection
+
+```rust
+let tx_hash = world
+    .tx()
+    .from(OWNER_ADDRESS).to(SC_ADDRESS)
+    .typed(my_proxy::MyProxy)
+    .add(1u32)
+    .tx_hash([22u8; 32])
+    .returns(ReturnsTxHash)
+    .run();
+
+assert_eq!(tx_hash.as_array(), &[22u8; 32]);
+```
+
+### BLS Aggregate Signatures
+
+```rust
+let (agg_signature, public_keys) = world
+    .create_aggregated_signature(3, b"message to sign")
+    .expect("failed to create aggregate signature");
+
+let pk_bytes: Vec<Vec<u8>> = public_keys.iter().map(|pk| pk.serialize().unwrap()).collect();
+
+assert!(verify_bls_aggregated_signature(
+    pk_bytes.clone(),
+    b"message to sign",
+    &agg_signature.serialize().unwrap()
+));
+```
+
+### Using `ScenarioValueRaw` for Complex Expected Values
+
+The auto-generator uses this when the value cannot be expressed with simple Rust types:
+
+```rust
+.returns(ExpectValue(ScenarioValueRaw::new("nested:str:EGLD-000000|u64:0|biguint:1000")))
+
+// List variant (for multi-value returns)
+.returns(ExpectValue(ScenarioValueRaw::new(ValueSubTree::List(vec![
+    ValueSubTree::Str("nested:str:EGLD-000000|u64:0|biguint:1000".to_string()),
+    ValueSubTree::Str("nested:str:MYTOKEN-123456|u64:0|biguint:500".to_string()),
+]))))
+```
+
+### Spawning Tests in Threads
+
+```rust
+#[test]
+fn my_test_spawned() {
+    let handler = std::thread::spawn(my_test);
+    handler.join().unwrap();
+}
+```
+
+---
+
+## 11. Best Practices and Common Pitfalls
+
+### ✅ DO
+
+- **Use typed constants** at the top of the file for all hex data, addresses, token IDs, code paths.
+- **Use transaction IDs** (`.id("...")`) for every transaction – they appear in panic messages and trace files, making failures trivially debuggable. Mirror the IDs from `.scen.json` files in generated tests.
+- **Test negative cases first**, then positive ones within each scenario.
+- **Compose step functions**: later test functions call earlier `*_scen_steps()` to reuse setup.
+- **Verify intermediate and final state** with `check_account` and `check_storage`.
+- **Chain setup helper methods** returning `&mut Self` for readable state progression.
+- **Use `ExecutorConfig::full_suite()`** when tests exercise payable endpoints, block info, or other VM features.
+- **`.commit()`** after account setup when you want eager application (otherwise state is applied lazily).
+
+### ❌ AVOID
+
+- **Inline hex strings** in transaction calls – use named constants.
+- **Missing transaction IDs** – makes debugging failures very hard.
+- **Testing only happy paths** – always cover owner-only checks, expired conditions, invalid inputs.
+- **Forgetting to advance block timestamp** before testing time-sensitive logic (expiry, timeouts).
+- **Mismatched byte-array lengths** – byte lengths in `[u8; N]` are checked at compile time, but hex string length must be exactly `2*N`.
+
+### Type-Specific Gotchas
+
+```rust
+// ✅ Correct – exact byte length (128 hex chars = 64 bytes)
+const SIGNATURE: [u8; 64] = hex!("...128-hex-chars...");
+
+// ❌ Wrong – compile error
+const SIGNATURE: [u8; 63] = hex!("...128-hex-chars...");
+
+// ✅ EGLD in payments
+Payment::try_new(TestTokenId::EGLD_000000, 0, 1_000u64).unwrap()
+
+// ✅ NFT with no attributes
+world.account(ADDRESS).esdt_nft_balance(NFT_ID, nonce, amount, ())
+// () means empty; supply actual bytes for attribute checks
+
+// ✅ Multi-value decode
+let (a, b) = result.into_tuple();
+```
+
+---
+
+## 12. Debugging Techniques
+
+### Transaction ID Strategy
+
+Use descriptive IDs that match `.scen.json` scenario steps:
+
+| Pattern | Example IDs |
+|---|---|
+| Deploy | `"deploy"` |
+| Fee deposit | `"deposit-fees-1"`, `"deposit-fees-user2"` |
+| Fund step | `"fund-egld"`, `"fund-esdt"` |
+| Claim | `"claim-egld"`, `"claim5-esdt"` |
+| Withdraw | `"withdraw-ok"`, `"withdraw-fail"` |
+| Config | `"set-fee-ok"`, `"whitelist-token"`, `"blacklist-token"` |
+| Error case | `"claim3-egld-fail-expired"`, `"claim2-fail"` |
+
+### Enable Tracing
+
+```rust
+world.start_trace();  // at the very beginning of the test
+```
+
+### Verify State at Intermediate Points
+
+```rust
+// After first operation:
+world.check_account(SC_ADDRESS)
+    .check_storage("str:deposit|0x...", "...");
+
+// Continue with next operation
+world.tx()...run();
+```
+
+---
+
+## 13. Auto-Generator Conventions Reference
+
+When reading or writing generated files, these conventions apply:
+
+| Element | Convention |
+|---|---|
+| File wrapper | `#[rustfmt::skip] mod generated { ... }` |
+| Token type | `TestTokenId` (not `TestTokenIdentifier`) |
+| Per-test function | `fn {name}_scen()` → calls `{name}_scen_steps()` |
+| Steps function | `pub fn {name}_scen_steps(world: &mut ScenarioWorld)` |
+| Account setup | `world.account(ADDR).nonce(0u64).balance(100u64)` (no `.commit()`) |
+| Payment | `Payment::try_new(TOKEN, nonce, amount).unwrap()` |
+| Expected return value | `ExpectValue(ScenarioValueRaw::new(...))` |
+| Error expectation | `.with_result(ExpectError(4, "message"))` |
+| Transaction ID | mirrors `.scen.json` step `"id"` field verbatim (may be `""`) |
+| Pre-existing SC | `world.account(SC_ADDRESS).nonce(0u64).code(CODE_PATH)` – no deploy tx |
