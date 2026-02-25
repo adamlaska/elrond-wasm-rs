@@ -6,9 +6,12 @@ use std::{fs, path::Path};
 pub struct ScenarioFile {
     pub file_name: String,
     pub scenario: Scenario,
+    /// If true, a `#[test]` wrapper function is generated in addition to the steps function.
+    /// `.scen.json` files generate a test; `.steps.json` files only generate a steps function.
+    pub generate_test: bool,
 }
 
-/// Scans the scenarios folder and loads all .scen.json files
+/// Scans the scenarios folder and loads all .scen.json and .steps.json files
 pub fn load_scenario_files(scenarios_dir: &Path) -> Vec<ScenarioFile> {
     if !scenarios_dir.exists() {
         return Vec::new();
@@ -20,15 +23,13 @@ pub fn load_scenario_files(scenarios_dir: &Path) -> Vec<ScenarioFile> {
         for entry in entries.flatten() {
             let path = entry.path();
             if path.is_file() {
-                if let Some(extension) = path.extension() {
-                    if extension == "json"
-                        && path
-                            .file_name()
-                            .and_then(|s| s.to_str())
-                            .map(|s| s.ends_with(".scen.json"))
-                            .unwrap_or(false)
-                    {
-                        if let Some(scenario_file) = load_scenario_file(&path) {
+                if let Some(file_name_str) = path.file_name().and_then(|s| s.to_str()) {
+                    if file_name_str.ends_with(".scen.json") {
+                        if let Some(scenario_file) = load_scenario_file(&path, true) {
+                            scenario_files.push(scenario_file);
+                        }
+                    } else if file_name_str.ends_with(".steps.json") {
+                        if let Some(scenario_file) = load_scenario_file(&path, false) {
                             scenario_files.push(scenario_file);
                         }
                     }
@@ -41,7 +42,7 @@ pub fn load_scenario_files(scenarios_dir: &Path) -> Vec<ScenarioFile> {
 }
 
 /// Loads a single scenario file
-fn load_scenario_file(path: &Path) -> Option<ScenarioFile> {
+fn load_scenario_file(path: &Path, generate_test: bool) -> Option<ScenarioFile> {
     let file_name = path
         .file_stem()
         .and_then(|s| s.to_str())
@@ -52,6 +53,7 @@ fn load_scenario_file(path: &Path) -> Option<ScenarioFile> {
     Some(ScenarioFile {
         file_name,
         scenario,
+        generate_test,
     })
 }
 

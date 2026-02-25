@@ -95,13 +95,15 @@ impl TestGenerator {
             self.step_writeln(format!("// {}", comment));
         }
 
-        // Write test function
-        self.step_writeln("#[test]");
-        self.step_writeln(format!("fn {}() {{", test_name));
-        self.step_writeln("    let mut world = world();");
-        self.step_writeln(format!("    {}(&mut world);", steps_function_name));
-        self.step_writeln("}");
-        self.step_writeln("");
+        if scenario_file.generate_test {
+            // Write test function
+            self.step_writeln("#[test]");
+            self.step_writeln(format!("fn {}() {{", test_name));
+            self.step_writeln("    let mut world = world();");
+            self.step_writeln(format!("    {}(&mut world);", steps_function_name));
+            self.step_writeln("}");
+            self.step_writeln("");
+        }
 
         // Write steps function
         self.step_writeln(format!(
