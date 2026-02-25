@@ -148,7 +148,7 @@ impl TestGenerator {
 
             "optional" => {
                 if input.is_empty() {
-                    "OptionalValue::None".to_string()
+                    "IgnoreValue".to_string()
                 } else {
                     let inner = type_args[0].clone();
                     let inner_type_names = TypeNames::from_abi(inner);

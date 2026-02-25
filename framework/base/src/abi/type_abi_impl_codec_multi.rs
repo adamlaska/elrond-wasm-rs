@@ -52,6 +52,10 @@ impl TypeAbi for IgnoreValue {
 
 impl<T, U> TypeAbiFrom<OptionalValue<U>> for OptionalValue<T> where T: TypeAbiFrom<U> {}
 
+// IgnoreValue -> OptionalValue::None
+// It makes it easier with
+impl<T> TypeAbiFrom<IgnoreValue> for OptionalValue<T> {}
+
 impl<T: TypeAbi> TypeAbi for OptionalValue<T> {
     type Unmanaged = OptionalValue<T::Unmanaged>;
 

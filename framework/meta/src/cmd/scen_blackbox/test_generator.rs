@@ -6,7 +6,8 @@ use super::scenario_loader::{ScenarioFile, scenario_to_function_name};
 
 const WORLD_FN_TODO: &str = "fn world() -> ScenarioWorld {
     todo!()
-}";
+}
+";
 
 /// Context for test generation, holding shared parameters
 pub struct TestGenerator {
