@@ -1,5 +1,4 @@
 use multiversx_sc_scenario::scenario::model::{BlockInfo, SetStateStep};
-use multiversx_sc_scenario::scenario_format::serde_raw::ValueSubTree;
 
 use super::{num_format, test_gen::TestGenerator};
 
@@ -21,17 +20,14 @@ impl<'a> TestGenerator<'a> {
             self.step_write(format!("    world.account({})", address_expr));
 
             if let Some(nonce) = &account.nonce {
-                self.step_writeln(format!(
-                    ".nonce({})",
-                    Self::format_nonce_value(&nonce.original)
-                ));
+                self.step_writeln(format!(".nonce({})", Self::format_nonce_value(nonce.value)));
                 self.step_write("        ");
             }
 
             if let Some(balance) = &account.balance {
                 self.step_writeln(format!(
                     ".balance({})",
-                    Self::format_balance_value(&balance.original)
+                    Self::format_balance_value(&balance.value)
                 ));
                 self.step_write("        ");
             }
@@ -134,45 +130,6 @@ impl<'a> TestGenerator<'a> {
                     self.step_write("        ");
                 }
             }
-        }
-    }
-
-    pub(super) fn format_nonce_value(value: &ValueSubTree) -> String {
-        let num_str = match value {
-            ValueSubTree::Str(s) => s.as_str(),
-            _ => return format!("\"{}\"", Self::format_value_as_string(value)),
-        };
-
-        // Remove commas and underscores for parsing
-        let cleaned = num_str.replace([',', '_'], "");
-
-        // Nonces are always u64
-        if cleaned.parse::<u64>().is_ok() {
-            format!("{}u64", cleaned)
-        } else {
-            format!("\"{}\"", num_str)
-        }
-    }
-
-    pub(super) fn format_balance_value(value: &ValueSubTree) -> String {
-        let num_str = match value {
-            ValueSubTree::Str(s) => s.as_str(),
-            _ => return format!("\"{}\"", Self::format_value_as_string(value)),
-        };
-
-        // Remove commas and underscores for parsing
-        let cleaned = num_str.replace([',', '_'], "");
-
-        // Try to parse as u128 and choose appropriate type
-        if let Ok(num_u128) = cleaned.parse::<u128>() {
-            if num_u128 <= u64::MAX as u128 {
-                format!("{}u64", cleaned)
-            } else {
-                format!("{}u128", cleaned)
-            }
-        } else {
-            // Fallback to string if not a valid number
-            format!("\"{}\"", num_str)
         }
     }
 }

@@ -375,4 +375,16 @@ impl<'a> TestGenerator<'a> {
             self.consts.get_or_create_token_id(name)
         }
     }
+
+    pub(super) fn format_balance_value(
+        value: &multiversx_sc_scenario::num_bigint::BigUint,
+    ) -> String {
+        let bytes = value.to_bytes_be();
+        num_format::format_unsigned(&bytes, "BigUint")
+    }
+
+    pub(super) fn format_nonce_value(value: u64) -> String {
+        let bytes = value.to_be_bytes();
+        num_format::format_unsigned(&bytes, "u64")
+    }
 }

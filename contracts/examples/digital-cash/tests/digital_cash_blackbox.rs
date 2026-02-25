@@ -586,16 +586,19 @@ fn set_accounts_scen() {
 }
 
 pub fn set_accounts_scen_steps(world: &mut ScenarioWorld) {
-    world.account(ACC1_ADDRESS).nonce(0u64).balance(1000000u64);
+    world
+        .account(ACC1_ADDRESS)
+        .nonce(0u64)
+        .balance(1_000_000u64);
     world
         .account(ACC2_ADDRESS)
         .nonce(0u64)
-        .balance(1000000u64)
+        .balance(1_000_000u64)
         .esdt_balance(CASHTOKEN_123456, 100u64);
     world
         .account(ACC3_ADDRESS)
         .nonce(0u64)
-        .balance(1000000u64)
+        .balance(1_000_000u64)
         .esdt_balance(CASHTOKEN_112233, 100u64)
         .esdt_balance(CASHTOKEN_445566, 100u64)
         .esdt_balance(CASHTOKEN_778899, 100u64);
