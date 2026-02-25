@@ -36,6 +36,13 @@ impl<'a> TestGenerator<'a> {
                 self.step_write("        ");
             }
 
+            if let Some(code) = &account.code {
+                let code_path_expr = code.original.to_concatenated_string();
+                let code_path_const = self.consts.format_code_path(&code_path_expr);
+                self.step_writeln(format!(".code({})", code_path_const));
+                self.step_write("        ");
+            }
+
             for (token_key, esdt) in &account.esdt {
                 let token_const = self.format_token_id_key(token_key);
                 self.generate_esdt_balance_calls(&token_const, esdt);
