@@ -1,6 +1,6 @@
 use crate::{
     host::context::{TxFunctionName, TxTokenTransfer},
-    types::{RawHandle, VMAddress, VMCodeMetadata},
+    types::{Address, RawHandle, VMCodeMetadata},
 };
 
 use super::ManagedTypeContainer;
@@ -26,8 +26,8 @@ impl ManagedTypeContainer {
         self.mb_get(handle).to_vec()
     }
 
-    pub fn mb_to_address(&self, handle: RawHandle) -> VMAddress {
-        VMAddress::from_slice(self.mb_get(handle))
+    pub fn mb_to_address(&self, handle: RawHandle) -> Address {
+        Address::from_slice(self.mb_get(handle))
     }
 
     pub fn mb_to_function_name(&self, handle: RawHandle) -> TxFunctionName {
