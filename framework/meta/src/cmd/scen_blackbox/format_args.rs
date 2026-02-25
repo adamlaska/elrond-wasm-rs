@@ -1,47 +1,217 @@
 use multiversx_sc::abi::TypeNames;
-use multiversx_sc_scenario::scenario::model::BytesValue;
+use multiversx_sc::chain_core::EGLD_000000_TOKEN_IDENTIFIER;
+use multiversx_sc_scenario::scenario::model::{AddressValue, BytesKey, BytesValue, CheckValue};
+use multiversx_sc_scenario::scenario_format::serde_raw::ValueSubTree;
 
-use super::{num_format, test_gen::TestGenerator};
+use super::{num_format, parse_abi::parse_abi_type, test_gen::TestGenerator};
+
+/// A wrapper around a slice of `BytesValue` for sequential consumption during argument formatting.
+pub struct BytesValueMultiInput<'a>(pub &'a [BytesValue]);
+
+impl<'a> BytesValueMultiInput<'a> {
+    /// Consumes and returns the next item.
+    pub fn next_item(&mut self) -> &'a BytesValue {
+        let first = self
+            .0
+            .first()
+            .expect("Expected more arguments for multi input");
+        self.0 = &self.0[1..];
+        first
+    }
+
+    /// Returns `true` if there are no remaining items.
+    pub fn is_empty(&self) -> bool {
+        self.0.is_empty()
+    }
+}
 
 impl<'a> TestGenerator<'a> {
-    /// Formats an argument value based on ABI type info and raw bytes.
+    /// Formats a list of arguments using ABI input type info into a single comma-separated string.
     ///
-    /// Uses ABI type information to generate idiomatic Rust literals where possible.
-    /// For types whose ABI name is ambiguous (e.g. time types all map to "u64"),
-    /// the Rust type name is checked instead.
-    /// Falls back to `ScenarioValueRaw::new` for unrecognized types.
-    pub(super) fn format_arg_value(&mut self, type_names: &TypeNames, arg: &BytesValue) -> String {
-        match type_names.specific_or_abi() {
-            "bool" => {
-                let is_true = arg.value.len() == 1 && arg.value[0] == 1;
-                if is_true {
-                    "true".to_string()
-                } else {
-                    "false".to_string()
+    /// Creates a `BytesValueMultiInput` from `args` and iterates over ABI inputs, passing
+    /// the multi-input by mutable reference to `format_arg_value`. Each ABI input may consume
+    /// one or more raw arguments depending on its type (e.g. `variadic<T>` consumes all
+    /// remaining, `multi<A,B>` consumes two, scalar types consume one).
+    ///
+    /// Any raw arguments that remain after all ABI inputs have been processed (i.e. those
+    /// for which no type info is available) are appended as `/* <raw> */` inline comments,
+    /// also separated by commas.
+    pub(super) fn format_inputs(
+        &mut self,
+        args: &[BytesValue],
+        inputs: Option<&[multiversx_sc::abi::InputAbi]>,
+    ) -> String {
+        let mut input = BytesValueMultiInput(args);
+        let mut result = String::new();
+
+        let mut first = true;
+        if let Some(inputs) = inputs {
+            for input_abi in inputs {
+                if input.is_empty() {
+                    break;
                 }
+                if !first {
+                    result.push_str(", ");
+                }
+                first = false;
+                result.push_str(&self.format_arg_value(&input_abi.type_names, &mut input));
             }
-            "u8" | "u16" | "u32" | "u64" | "usize" | "BigUint" => {
-                num_format::format_unsigned(&arg.value, &type_names.abi)
+        }
+
+        // Any remaining args without ABI info — emit as comments
+        while !input.is_empty() {
+            let arg = input.next_item();
+
+            result.push_str(&format!("/* {} */", arg.original.to_concatenated_string()));
+        }
+
+        result
+    }
+
+    /// Formats expected output values using ABI type information into a single string.
+    ///
+    /// Similar to `format_inputs` but uses `OutputAbi` instead of `InputAbi`.
+    /// Extracts `BytesValue`s from the `CheckValue` wrappers (Star values must already be
+    /// filtered by the caller), builds a `BytesValueMultiInput`, then iterates over ABI
+    /// outputs letting each output type consume as many raw values as it needs.
+    ///
+    /// If there are multiple output parts the result is wrapped in `MultiValueN::new(...)`.
+    /// Any remaining raw values without ABI info are appended as `/* <raw> */` comments.
+    pub(super) fn format_out_values(
+        &mut self,
+        out_values: &[CheckValue<BytesValue>],
+        endpoint_name: &str,
+    ) -> String {
+        let outputs = self.find_endpoint_outputs(endpoint_name);
+
+        // Extract BytesValues – Star values are guaranteed to be pre-filtered.
+        let bv_vec: Vec<BytesValue> = out_values
+            .iter()
+            .map(|v| match v {
+                CheckValue::Equal(bv) => bv.clone(),
+                CheckValue::Star => {
+                    unreachable!("Star values should be filtered before calling format_out_values")
+                }
+            })
+            .collect();
+
+        let mut input = BytesValueMultiInput(&bv_vec);
+        let mut parts = Vec::new();
+
+        if let Some(outputs) = &outputs {
+            for output in outputs.iter() {
+                if input.is_empty() {
+                    break;
+                }
+                parts.push(self.format_arg_value(&output.type_names, &mut input));
             }
-            "i8" | "i16" | "i32" | "i64" | "isize" | "BigInt" => {
-                num_format::format_signed(&arg.value, &type_names.abi)
+        }
+
+        // Any remaining values without ABI info — emit as comments
+        while !input.is_empty() {
+            let arg = input.next_item();
+            parts.push(format!("/* {} */", arg.original.to_concatenated_string()));
+        }
+
+        let n = parts.len();
+        if n == 1 {
+            parts.into_iter().next().unwrap_or_default()
+        } else {
+            format!("MultiValue{}::new({})", n, parts.join(", "))
+        }
+    }
+
+    /// Formats an argument value based on ABI type info, consuming items from `input`.
+    ///
+    /// Calls `parse_abi_type` to determine the structural kind of the type, then dispatches:
+    /// - `variadic<T>`: consumes all remaining items and wraps in `MultiValueVec::from(vec![...])`.
+    /// - `optional<T>` / `OptionalValue<T>`: consumes one item if available.
+    /// - `multi<A,B,...>`: consumes one item per field type and wraps in `MultiValueN::new(...)`.
+    /// - `array<N><u8>`: consumes one item and formats as a byte-array constant.
+    /// - Everything else (scalar types): consumes exactly one item and formats it using
+    ///   `specific_or_abi()` for fine-grained type matching.
+    pub(super) fn format_arg_value(
+        &mut self,
+        type_names: &TypeNames,
+        input: &mut BytesValueMultiInput,
+    ) -> String {
+        let (base, type_args) = parse_abi_type(type_names.specific_or_abi());
+
+        match base.as_str() {
+            "variadic" => {
+                let inner = type_args[0].clone();
+                let inner_type_names = TypeNames::from_abi(inner);
+                let mut items = Vec::new();
+                while !input.is_empty() {
+                    items.push(self.format_arg_value(&inner_type_names, input));
+                }
+
+                format!("MultiValueVec::from(vec![{}])", items.join(", "))
             }
-            "TokenIdentifier" | "EgldOrEsdtTokenIdentifier" | "TokenId" => {
-                self.format_token_id_value(arg)
+
+            "optional" | "OptionalValue" => {
+                if input.is_empty() {
+                    return "OptionalValue::None".to_string();
+                }
+                let inner = type_args[0].clone();
+                let inner_type_names = TypeNames::from_abi(inner);
+                self.format_arg_value(&inner_type_names, input)
             }
-            "H256" if arg.value.len() == 32 => self.format_h256(arg),
-            "TimestampMillis" | "TimestampSeconds" | "DurationMillis" | "DurationSeconds" => {
-                let inner = num_format::format_unsigned(&arg.value, "u64");
-                format!("{}::new({})", type_names.abi, inner)
+
+            "multi" => {
+                let n = type_args.len();
+                let fields: Vec<String> = type_args
+                    .into_iter()
+                    .map(|t| {
+                        let tn = TypeNames::from_abi(t);
+                        self.format_arg_value(&tn, input)
+                    })
+                    .collect();
+                format!("MultiValue{}::new({})", n, fields.join(", "))
             }
-            // TODO: add more type cases here
+
             _ => {
-                if let Some(size) = Self::parse_array_type(&type_names.abi) {
-                    if arg.value.len() == size {
-                        return self.format_byte_array(arg, size);
+                // Scalar type: consume exactly one BytesValue.
+                let arg = input.next_item();
+                match base.as_str() {
+                    "bool" => {
+                        let is_true = arg.value.len() == 1 && arg.value[0] == 1;
+                        if is_true {
+                            "true".to_string()
+                        } else {
+                            "false".to_string()
+                        }
                     }
+                    "u8" | "u16" | "u32" | "u64" | "usize" | "BigUint" => {
+                        num_format::format_unsigned(&arg.value, &type_names.abi)
+                    }
+                    "i8" | "i16" | "i32" | "i64" | "isize" | "BigInt" => {
+                        num_format::format_signed(&arg.value, &type_names.abi)
+                    }
+                    "TokenIdentifier" | "EgldOrEsdtTokenIdentifier" | "TokenId" => {
+                        self.format_token_id_value(arg)
+                    }
+                    "H256" if arg.value.len() == 32 => self.format_h256(arg),
+                    "TimestampMillis" | "TimestampSeconds" | "DurationMillis"
+                    | "DurationSeconds" => {
+                        let inner = num_format::format_unsigned(&arg.value, "u64");
+                        format!("{}::new({})", type_names.abi, inner)
+                    }
+                    "array" => {
+                        // e.g. array32<u8> → type_args = ["32", "u8"]
+                        let size = type_args
+                            .first()
+                            .and_then(|s| s.parse::<usize>().ok())
+                            .unwrap_or(0);
+                        if type_args[1] == "u8" && size > 0 && arg.value.len() == size {
+                            self.format_byte_array(arg, size)
+                        } else {
+                            Self::format_unknown_value(&arg.original)
+                        }
+                    }
+                    // TODO: add more type cases here
+                    _ => Self::format_unknown_value(&arg.original),
                 }
-                Self::format_value(&arg.original)
             }
         }
     }
@@ -61,13 +231,6 @@ impl<'a> TestGenerator<'a> {
         self.consts.get_or_create_h256(&hex_str)
     }
 
-    /// Parses an ABI type name like `"array32<u8>"` and returns the array size.
-    fn parse_array_type(abi_type: &str) -> Option<usize> {
-        let rest = abi_type.strip_prefix("array")?;
-        let size_str = rest.strip_suffix("<u8>")?;
-        size_str.parse::<usize>().ok()
-    }
-
     /// Formats a fixed-size byte array as a named constant using `hex!()`.
     /// Generates `const HEX_{size}_{N}: [u8; {size}] = hex!("...");`
     /// and returns `&HEX_{size}_{N}`.
@@ -76,145 +239,134 @@ impl<'a> TestGenerator<'a> {
         self.consts.get_or_create_byte_array(&hex_str, size)
     }
 
-    /// Formats a list of arguments, using ABI type info when available.
-    ///
-    /// Handles `variadic<T>` and `multi<A,B,...>` types:
-    /// - A `variadic<T>` input consumes all remaining scenario arguments, wrapping them
-    ///   in `MultiValueVec::from(vec![...])`.
-    /// - If the inner type is `multi<A,B,...>`, arguments are taken in groups matching
-    ///   the number of multi fields, each group wrapped in `MultiValueN::new(...)`.
-    /// - For all other (scalar) types, delegates to `format_arg_value`.
-    pub(super) fn format_args(
-        &mut self,
-        args: &[BytesValue],
-        inputs: Option<&[multiversx_sc::abi::InputAbi]>,
-    ) -> Vec<String> {
-        let mut result = Vec::with_capacity(args.len());
-        let mut arg_idx = 0;
+    // -------------------------------------------------------------------------
+    // Address / value formatting (shared across all generators)
+    // -------------------------------------------------------------------------
 
-        let input_count = inputs.map_or(0, |ins| ins.len());
+    pub(super) fn format_address(&mut self, addr: &str) -> String {
+        // Remove quotes if present
+        let clean = addr.trim_matches('"');
 
-        for input_idx in 0..input_count {
-            if arg_idx >= args.len() {
-                break;
-            }
-
-            let input = &inputs.unwrap()[input_idx];
-            let abi_type = &input.type_names.abi;
-
-            if let Some(inner) = abi_type
-                .strip_prefix("variadic<")
-                .and_then(|s| s.strip_suffix('>'))
-            {
-                // Variadic: consume all remaining args
-                let remaining = &args[arg_idx..];
-                let formatted = self.format_variadic(inner, remaining);
-                result.push(formatted);
-                arg_idx = args.len(); // all consumed
-            } else if let Some(inner) = abi_type
-                .strip_prefix("optional<")
-                .and_then(|s| s.strip_suffix('>'))
-            {
-                // Optional: consume one arg if available
-                let type_names = TypeNames::from_abi(inner.to_string());
-                let formatted = self.format_arg_value(&type_names, &args[arg_idx]);
-                result.push(formatted);
-                arg_idx += 1;
-            } else {
-                // Scalar type
-                let formatted = self.format_arg_value(&input.type_names, &args[arg_idx]);
-                result.push(formatted);
-                arg_idx += 1;
-            }
-        }
-
-        // Any remaining args without ABI info
-        while arg_idx < args.len() {
-            result.push(Self::format_value(&args[arg_idx].original));
-            arg_idx += 1;
-        }
-
-        result
-    }
-
-    /// Formats a variadic argument: `MultiValueVec::from(vec![...])`.
-    ///
-    /// If `inner_type` is `multi<A,B,...>`, groups remaining args and wraps each
-    /// group in `MultiValueN::new(...)`.
-    fn format_variadic(&mut self, inner_type: &str, args: &[BytesValue]) -> String {
-        if let Some(multi_inner) = inner_type
-            .strip_prefix("multi<")
-            .and_then(|s| s.strip_suffix('>'))
+        // Handle address: and sc: prefixes
+        if let Some(name) = clean.strip_prefix("address:") {
+            self.consts.get_or_create_address(addr, name)
+        } else if let Some(name) = clean.strip_prefix("sc:") {
+            self.consts.get_or_create_sc_address(addr, name)
+        } else if clean.starts_with("0x")
+            || clean.starts_with("0X")
+            || (clean.len() == 64 && clean.chars().all(|c| c.is_ascii_hexdigit()))
         {
-            let field_types = Self::parse_multi_fields(multi_inner);
-            let group_size = field_types.len();
-
-            if group_size == 0 || args.is_empty() {
-                return "MultiValueVec::from(vec![])".to_string();
-            }
-
-            let multi_struct = format!("MultiValue{}", group_size);
-            let mut items = Vec::new();
-
-            for chunk in args.chunks(group_size) {
-                let mut fields = Vec::new();
-                for (j, arg) in chunk.iter().enumerate() {
-                    let type_names =
-                        TypeNames::from_abi(field_types.get(j).cloned().unwrap_or_default());
-                    fields.push(self.format_arg_value(&type_names, arg));
-                }
-                items.push(format!("{}::new({})", multi_struct, fields.join(", ")));
-            }
-
-            format!("MultiValueVec::from(vec![{}])", items.join(", "))
+            self.consts.get_or_create_hex_address(clean)
         } else {
-            // Simple variadic (not multi)
-            let type_names = TypeNames::from_abi(inner_type.to_string());
-
-            if args.is_empty() {
-                return "MultiValueVec::from(vec![])".to_string();
-            }
-
-            let items: Vec<String> = args
-                .iter()
-                .map(|arg| self.format_arg_value(&type_names, arg))
-                .collect();
-
-            format!("MultiValueVec::from(vec![{}])", items.join(", "))
+            // Raw address - wrap in ScenarioValueRaw
+            format!("ScenarioValueRaw::new(\"{}\")", clean)
         }
     }
 
-    /// Parses the comma-separated fields inside `multi<A,B,...>`, respecting nested angle brackets.
-    fn parse_multi_fields(s: &str) -> Vec<String> {
-        let mut fields = Vec::new();
-        let mut depth = 0;
-        let mut current = String::new();
+    pub(super) fn format_address_value(&mut self, value: &AddressValue) -> String {
+        match &value.original {
+            ValueSubTree::Str(s) => self.format_address(s),
+            _ => {
+                // Fallback for non-string addresses
+                Self::format_unknown_value(&value.original)
+            }
+        }
+    }
 
-        for ch in s.chars() {
-            match ch {
-                '<' => {
-                    depth += 1;
-                    current.push(ch);
+    pub(super) fn format_unknown_value(value: &ValueSubTree) -> String {
+        match value {
+            ValueSubTree::Str(s) => {
+                format!("ScenarioValueRaw::new(\"{}\")", Self::escape_string(s))
+            }
+            _ => {
+                format!(
+                    "ScenarioValueRaw::new({})",
+                    Self::format_value_subtree(value)
+                )
+            }
+        }
+    }
+
+    fn format_value_subtree(value: &ValueSubTree) -> String {
+        match value {
+            ValueSubTree::Str(s) => {
+                format!(
+                    "ValueSubTree::Str(\"{}\".to_string())",
+                    Self::escape_string(s)
+                )
+            }
+            ValueSubTree::List(items) => {
+                if items.is_empty() {
+                    "ValueSubTree::List(vec![])".to_string()
+                } else {
+                    let formatted_items: Vec<String> =
+                        items.iter().map(Self::format_value_subtree).collect();
+                    format!("ValueSubTree::List(vec![{}])", formatted_items.join(", "))
                 }
-                '>' => {
-                    depth -= 1;
-                    current.push(ch);
-                }
-                ',' if depth == 0 => {
-                    fields.push(current.trim().to_string());
-                    current = String::new();
-                }
-                _ => {
-                    current.push(ch);
+            }
+            ValueSubTree::Map(map) => {
+                if map.is_empty() {
+                    "ValueSubTree::Map(BTreeMap::new())".to_string()
+                } else {
+                    let formatted_entries: Vec<String> = map
+                        .iter()
+                        .map(|(k, v)| {
+                            format!(
+                                "(\"{}\".to_string(), {})",
+                                Self::escape_string(k),
+                                Self::format_value_subtree(v)
+                            )
+                        })
+                        .collect();
+                    format!(
+                        "ValueSubTree::Map(BTreeMap::from([{}]))",
+                        formatted_entries.join(", ")
+                    )
                 }
             }
         }
+    }
 
-        let trimmed = current.trim().to_string();
-        if !trimmed.is_empty() {
-            fields.push(trimmed);
+    pub(super) fn format_value_as_string(value: &ValueSubTree) -> String {
+        match value {
+            ValueSubTree::Str(s) => s.clone(),
+            ValueSubTree::List(items) => {
+                let strs: Vec<String> = items.iter().map(Self::format_value_as_string).collect();
+                strs.join("|")
+            }
+            ValueSubTree::Map(map) => {
+                let strs: Vec<String> = map.values().map(Self::format_value_as_string).collect();
+                strs.join("|")
+            }
         }
+    }
 
-        fields
+    pub(super) fn escape_string(s: &str) -> String {
+        s.chars().flat_map(char::escape_default).collect()
+    }
+
+    // -------------------------------------------------------------------------
+    // Token ID formatting (shared across all generators)
+    // -------------------------------------------------------------------------
+
+    /// Formats a token identifier from a BytesValue into a constant reference.
+    /// Generates a `TestTokenId` constant if one doesn't already exist.
+    pub(super) fn format_token_id_value(&mut self, token_id: &BytesValue) -> String {
+        self.format_token_id_str(&String::from_utf8_lossy(&token_id.value))
+    }
+
+    /// Formats a token identifier from a BytesKey (used in setState ESDT maps).
+    pub(super) fn format_token_id_key(&mut self, key: &BytesKey) -> String {
+        self.format_token_id_str(&String::from_utf8_lossy(&key.value))
+    }
+
+    /// Core token ID formatting logic, shared by `format_token_id` and `format_token_id_from_key`.
+    fn format_token_id_str(&mut self, name: &str) -> String {
+        if name == EGLD_000000_TOKEN_IDENTIFIER {
+            // Use the built-in constant for EGLD-000000
+            "TestTokenId::EGLD_000000".to_string()
+        } else {
+            self.consts.get_or_create_token_id(name)
+        }
     }
 }

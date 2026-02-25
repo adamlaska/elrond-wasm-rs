@@ -2,6 +2,7 @@ mod check_state_gen;
 mod const_state;
 mod format_args;
 mod num_format;
+mod parse_abi;
 mod scenario_loader;
 mod set_state_gen;
 mod step_code_gen;

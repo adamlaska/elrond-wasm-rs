@@ -1,5 +1,5 @@
 use multiversx_sc_scenario::scenario::model::{
-    BigUintValue, BytesValue, CheckValue, ScCallStep, ScDeployStep, ScQueryStep, TxESDT, TxExpect,
+    BigUintValue, CheckValue, ScCallStep, ScDeployStep, ScQueryStep, TxESDT, TxExpect,
 };
 use multiversx_sc_scenario::scenario_format::serde_raw::ValueSubTree;
 
@@ -29,15 +29,8 @@ impl<'a> TestGenerator<'a> {
         self.step_write("        ");
 
         let inputs = self.find_constructor_inputs();
-        let formatted_args = self.format_args(&tx.arguments, inputs.as_deref());
-        self.step_write(".init(");
-        for (i, formatted) in formatted_args.iter().enumerate() {
-            if i > 0 {
-                self.step_write(", ");
-            }
-            self.step_write(formatted);
-        }
-        self.step_writeln(")");
+        let formatted_args = self.format_inputs(&tx.arguments, inputs.as_deref());
+        self.step_writeln(format!(".init({})", formatted_args));
         self.step_write("        ");
 
         // Generate EGLD payment for deploy (no ESDT support on deploy)
@@ -91,16 +84,9 @@ impl<'a> TestGenerator<'a> {
 
         // Map the endpoint name from scenario to Rust method name
         let inputs = self.find_endpoint_inputs(&tx.function);
-        let formatted_args = self.format_args(&tx.arguments, inputs.as_deref());
+        let formatted_args = self.format_inputs(&tx.arguments, inputs.as_deref());
         let rust_method_name = self.map_endpoint_name(&tx.function);
-        self.step_write(format!(".{}(", rust_method_name));
-        for (i, formatted) in formatted_args.iter().enumerate() {
-            if i > 0 {
-                self.step_write(", ");
-            }
-            self.step_write(formatted);
-        }
-        self.step_writeln(")");
+        self.step_writeln(format!(".{}({})", rust_method_name, formatted_args));
         self.step_write("        ");
 
         // Generate payments
@@ -138,16 +124,9 @@ impl<'a> TestGenerator<'a> {
 
         // Map the endpoint name from scenario to Rust method name
         let inputs = self.find_endpoint_inputs(&tx.function);
-        let formatted_args = self.format_args(&tx.arguments, inputs.as_deref());
+        let formatted_args = self.format_inputs(&tx.arguments, inputs.as_deref());
         let rust_method_name = self.map_endpoint_name(&tx.function);
-        self.step_write(format!(".{}(", rust_method_name));
-        for (i, formatted) in formatted_args.iter().enumerate() {
-            if i > 0 {
-                self.step_write(", ");
-            }
-            self.step_write(formatted);
-        }
-        self.step_writeln(")");
+        self.step_writeln(format!(".{}({})", rust_method_name, formatted_args));
         self.step_write("        ");
 
         self.generate_expect_results(expect, &tx.function);
@@ -278,50 +257,7 @@ impl<'a> TestGenerator<'a> {
         }
 
         let formatted = self.format_out_values(out_values, endpoint_name);
-
-        if formatted.len() == 1 {
-            self.step_writeln(format!(".returns(ExpectValue({}))", formatted[0]));
-        } else {
-            let n = formatted.len();
-            self.step_writeln(format!(
-                ".returns(ExpectValue(MultiValue{}::new({})))",
-                n,
-                formatted.join(", ")
-            ));
-        }
+        self.step_writeln(format!(".returns(ExpectValue({}))", formatted));
         self.step_write("        ");
-    }
-
-    /// Formats expected output values using ABI type information.
-    ///
-    /// Similar to `format_args` but uses `OutputAbi` instead of `InputAbi`.
-    fn format_out_values(
-        &mut self,
-        out_values: &[CheckValue<BytesValue>],
-        endpoint_name: &str,
-    ) -> Vec<String> {
-        let outputs = self.find_endpoint_outputs(endpoint_name);
-        let output_count = outputs.as_ref().map_or(0, |o| o.len());
-
-        let mut result = Vec::with_capacity(out_values.len());
-
-        for (i, out_val) in out_values.iter().enumerate() {
-            // Star values are filtered out by generate_expect_results
-            let bv = match out_val {
-                CheckValue::Star => {
-                    unreachable!("Star values should be filtered before calling format_out_values")
-                }
-                CheckValue::Equal(bv) => bv,
-            };
-
-            if i < output_count {
-                let type_names = &outputs.as_ref().unwrap()[i].type_names;
-                result.push(self.format_arg_value(type_names, bv));
-            } else {
-                result.push(Self::format_value(&bv.original));
-            }
-        }
-
-        result
     }
 }
