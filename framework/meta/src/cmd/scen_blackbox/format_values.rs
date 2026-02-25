@@ -370,7 +370,7 @@ impl TestGenerator {
         self.format_token_id_str(&String::from_utf8_lossy(&key.value))
     }
 
-    /// Core token ID formatting logic, shared by `format_token_id` and `format_token_id_from_key`.
+    /// Core token ID formatting logic, shared by `format_token_id_value` and `format_token_id_key`.
     fn format_token_id_str(&mut self, name: &str) -> String {
         if name == EGLD_000000_TOKEN_IDENTIFIER {
             // Use the built-in constant for EGLD-000000

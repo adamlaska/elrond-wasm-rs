@@ -133,8 +133,6 @@ impl ConstState {
     }
 
     /// Returns the constant name for a token ID, creating the constant if needed.
-    ///
-    /// Handles `str:` prefix stripping and the built-in `EGLD-000000` token.
     pub fn get_or_create_token_id(&mut self, name: &str) -> String {
         if let Some(const_name) = self.token_id_map.get(name) {
             return const_name.clone();

@@ -184,7 +184,8 @@ impl TestGenerator {
         self.step_write("        ");
     }
 
-    /// Generates `.with_result(ExpectError(status, "message"))` when the expected status is non-zero.
+    /// Generates `.with_result(ExpectError(status, "message"))` or `.with_result(ExpectStatus(status))`
+    /// when the expected status is non-zero (the latter when the expected message is `*`).
     pub(super) fn generate_expect_error(&mut self, expect: Option<&TxExpect>) {
         let Some(expect_val) = expect else {
             return;
