@@ -14,10 +14,7 @@ fn world() -> ScenarioWorld {
     let mut blockchain = ScenarioWorld::new().executor_config(ExecutorConfig::full_suite());
 
     blockchain.set_current_dir_from_workspace("contracts/examples/ping-pong-egld");
-    blockchain.register_contract(
-        "mxsc:output/ping-pong-egld.mxsc.json",
-        ping_pong_egld::ContractBuilder,
-    );
+    blockchain.register_contract(PING_PONG_EGLD_CODE_PATH, ping_pong_egld::ContractBuilder);
     blockchain
 }
 
