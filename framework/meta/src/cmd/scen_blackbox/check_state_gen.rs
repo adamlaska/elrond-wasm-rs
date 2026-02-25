@@ -16,7 +16,7 @@ impl TestGenerator {
             // Check if we need to check storage
             if let CheckStorage::Equal(ref storage_details) = account.storage {
                 if !storage_details.storages.is_empty() {
-                    self.step_writeln(format!("    world.check_account({})", address_expr));
+                    self.step_writeln(format!("    world\n        .check_account({})", address_expr));
 
                     for (key, value) in &storage_details.storages {
                         let value_str = Self::format_check_value_for_storage(value);
