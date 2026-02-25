@@ -56,50 +56,6 @@ impl TestGenerator {
         self.step_writeln("");
     }
 
-    // -------------------------------------------------------------------------
-    // ABI lookups (shared across all generators)
-    // -------------------------------------------------------------------------
-
-    /// Looks up the ABI inputs for an endpoint by its scenario name.
-    pub(super) fn find_endpoint_inputs(
-        &self,
-        endpoint_name: &str,
-    ) -> Option<Vec<multiversx_sc::abi::InputAbi>> {
-        self.abi
-            .endpoints
-            .iter()
-            .find(|e| e.name == endpoint_name)
-            .map(|e| e.inputs.clone())
-    }
-
-    /// Looks up the ABI outputs for an endpoint by its scenario name.
-    pub(super) fn find_endpoint_outputs(
-        &self,
-        endpoint_name: &str,
-    ) -> Option<Vec<multiversx_sc::abi::OutputAbi>> {
-        self.abi
-            .endpoints
-            .iter()
-            .find(|e| e.name == endpoint_name)
-            .map(|e| e.outputs.clone())
-    }
-
-    /// Looks up the ABI inputs for the constructor.
-    pub(super) fn find_constructor_inputs(&self) -> Option<Vec<multiversx_sc::abi::InputAbi>> {
-        self.abi.constructors.first().map(|e| e.inputs.clone())
-    }
-
-    /// Maps an endpoint name from the scenario (usually camelCase) to the Rust method name (snake_case)
-    /// by looking it up in the contract ABI.
-    pub(super) fn map_endpoint_name(&self, scenario_endpoint_name: &str) -> String {
-        for endpoint in &self.abi.endpoints {
-            if endpoint.name == scenario_endpoint_name {
-                return endpoint.rust_method_name.clone();
-            }
-        }
-        scenario_endpoint_name.to_string()
-    }
-
     pub(super) fn generate_proxy_type(&self) -> String {
         // Convert crate name to CamelCase for the proxy struct name
         let struct_name = self

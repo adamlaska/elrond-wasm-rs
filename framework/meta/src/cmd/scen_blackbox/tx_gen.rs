@@ -28,7 +28,7 @@ impl TestGenerator {
         self.step_writeln(format!(".typed({})", proxy_type));
         self.step_write("        ");
 
-        let inputs = self.find_constructor_inputs();
+        let inputs = self.abi.find_constructor_inputs();
         let formatted_args = self.format_inputs(&tx.arguments, inputs.as_deref());
         self.step_writeln(format!(".init({})", formatted_args));
         self.step_write("        ");
@@ -83,9 +83,9 @@ impl TestGenerator {
         self.step_write("        ");
 
         // Map the endpoint name from scenario to Rust method name
-        let inputs = self.find_endpoint_inputs(&tx.function);
+        let inputs = self.abi.find_endpoint_inputs(&tx.function);
         let formatted_args = self.format_inputs(&tx.arguments, inputs.as_deref());
-        let rust_method_name = self.map_endpoint_name(&tx.function);
+        let rust_method_name = self.abi.find_endpoint_rust_name(&tx.function);
         self.step_writeln(format!(".{}({})", rust_method_name, formatted_args));
         self.step_write("        ");
 
@@ -123,9 +123,9 @@ impl TestGenerator {
         self.step_write("        ");
 
         // Map the endpoint name from scenario to Rust method name
-        let inputs = self.find_endpoint_inputs(&tx.function);
+        let inputs = self.abi.find_endpoint_inputs(&tx.function);
         let formatted_args = self.format_inputs(&tx.arguments, inputs.as_deref());
-        let rust_method_name = self.map_endpoint_name(&tx.function);
+        let rust_method_name = self.abi.find_endpoint_rust_name(&tx.function);
         self.step_writeln(format!(".{}({})", rust_method_name, formatted_args));
         self.step_write("        ");
 

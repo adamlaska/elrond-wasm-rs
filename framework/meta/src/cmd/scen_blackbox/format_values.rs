@@ -79,7 +79,7 @@ impl TestGenerator {
         out_values: &[CheckValue<BytesValue>],
         endpoint_name: &str,
     ) -> String {
-        let outputs = self.find_endpoint_outputs(endpoint_name);
+        let outputs = self.abi.find_endpoint_outputs(endpoint_name);
 
         // Extract BytesValues – Star values are guaranteed to be pre-filtered.
         let bv_vec: Vec<BytesValue> = out_values
