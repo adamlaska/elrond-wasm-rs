@@ -300,16 +300,20 @@
             "inputs": [],
             "outputs": [
                 {
-                    "type": "u64"
+                    "type": "u64",
+                    "specificType": "TimestampMillis"
                 },
                 {
-                    "type": "u64"
+                    "type": "u64",
+                    "specificType": "TimestampSeconds"
                 },
                 {
-                    "type": "u64"
+                    "type": "u64",
+                    "specificType": "DurationMillis"
                 },
                 {
-                    "type": "u64"
+                    "type": "u64",
+                    "specificType": "DurationSeconds"
                 }
             ]
         },
