@@ -444,6 +444,11 @@ pub struct ScenBlackboxArgs {
     #[arg(long, verbatim_doc_comment)]
     #[clap(global = true, default_value = "target")]
     pub ignore: Vec<String>,
+
+    /// Output file path for the generated blackbox test.
+    /// If not specified, the default path inside the contract's tests/ folder is used.
+    #[arg(long, verbatim_doc_comment)]
+    pub output: Option<String>,
 }
 
 #[derive(Default, PartialEq, Eq, Debug, Clone, Parser)]

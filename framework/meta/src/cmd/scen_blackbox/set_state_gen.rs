@@ -1,8 +1,8 @@
 use multiversx_sc_scenario::scenario::model::{BlockInfo, SetStateStep};
 
-use super::{num_format, test_gen::TestGenerator};
+use super::{num_format, test_generator::TestGenerator};
 
-impl<'a> TestGenerator<'a> {
+impl TestGenerator {
     pub(super) fn generate_set_state(&mut self, set_state: &SetStateStep) {
         if let Some(comment_text) = &set_state.comment {
             self.step_writeln(format!("    // {}", comment_text));

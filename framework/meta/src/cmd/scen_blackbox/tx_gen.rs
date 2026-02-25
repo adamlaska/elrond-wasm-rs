@@ -3,9 +3,9 @@ use multiversx_sc_scenario::scenario::model::{
 };
 use multiversx_sc_scenario::scenario_format::serde_raw::ValueSubTree;
 
-use super::test_gen::TestGenerator;
+use super::test_generator::TestGenerator;
 
-impl<'a> TestGenerator<'a> {
+impl TestGenerator {
     pub(super) fn generate_sc_deploy(&mut self, sc_deploy: &ScDeployStep) {
         let tx = &sc_deploy.tx;
 

@@ -2,9 +2,9 @@ use multiversx_sc_scenario::scenario::model::{
     BytesValue, CheckAccounts, CheckStorage, CheckValue,
 };
 
-use super::test_gen::TestGenerator;
+use super::test_generator::TestGenerator;
 
-impl<'a> TestGenerator<'a> {
+impl TestGenerator {
     pub(super) fn generate_check_state(&mut self, comment: Option<&str>, accounts: &CheckAccounts) {
         if let Some(comment_text) = comment {
             self.step_writeln(format!("    // {}", comment_text));

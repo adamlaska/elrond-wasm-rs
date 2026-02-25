@@ -3,7 +3,7 @@ use multiversx_sc::chain_core::EGLD_000000_TOKEN_IDENTIFIER;
 use multiversx_sc_scenario::scenario::model::{AddressValue, BytesKey, BytesValue, CheckValue};
 use multiversx_sc_scenario::scenario_format::serde_raw::ValueSubTree;
 
-use super::{num_format, parse_abi::parse_abi_type, test_gen::TestGenerator};
+use super::{num_format, parse_abi::parse_abi_type, test_generator::TestGenerator};
 
 /// A wrapper around a slice of `BytesValue` for sequential consumption during argument formatting.
 pub struct BytesValueMultiInput<'a>(pub &'a [BytesValue]);
@@ -25,7 +25,7 @@ impl<'a> BytesValueMultiInput<'a> {
     }
 }
 
-impl<'a> TestGenerator<'a> {
+impl TestGenerator {
     /// Formats a list of arguments using ABI input type info into a single comma-separated string.
     ///
     /// Creates a `BytesValueMultiInput` from `args` and iterates over ABI inputs, passing

@@ -1,8 +1,8 @@
 use multiversx_sc_scenario::scenario::model::Step;
 
-use super::{scenario_loader::scenario_to_function_name, test_gen::TestGenerator};
+use super::{scenario_loader::scenario_to_function_name, test_generator::TestGenerator};
 
-impl<'a> TestGenerator<'a> {
+impl TestGenerator {
     // -------------------------------------------------------------------------
     // Step dispatcher
     // -------------------------------------------------------------------------
