@@ -267,7 +267,9 @@ where
 }
 
 #[type_abi]
-#[derive(ManagedVecItem, TopEncode, TopDecode, NestedEncode, NestedDecode, PartialEq, Eq, Clone, Copy)]
+#[derive(
+    ManagedVecItem, TopEncode, TopDecode, NestedEncode, NestedDecode, PartialEq, Eq, Clone, Copy,
+)]
 pub enum OrderType {
     Buy,
     Sell,
