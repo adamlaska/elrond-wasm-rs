@@ -145,8 +145,37 @@ blockchain.register_contract(FORWARDER_PATH, forwarder::ContractBuilder);
 ```
 
 > **Unregistered contract binaries:** A contract can also call into another contract whose source is not registered and has no Rust `ContractBuilder`. In that case, the framework executes the compiled `.wasm` or `.mxsc.json` binary directly. This is useful for integration tests against already-deployed third-party contracts.
+>
+> Example from the multisig blackbox test:
+> ```rust
+> // In world() – only multisig is registered
+> fn world() -> ScenarioWorld {
+>     let mut blockchain = ScenarioWorld::new().executor_config(ExecutorConfig::full_suite());
+>     blockchain.set_current_dir_from_workspace("contracts/examples/multisig");
+>     blockchain.register_contract(MULTISIG_CODE_PATH, multisig::ContractBuilder);
+>     blockchain
+> }
+> 
+> // Deploy adder without registering it – uses binary execution
+> fn deploy_adder_contract(&mut self) {
+>     self.world
+>         .tx()
+>         .from(ADDER_OWNER_ADDRESS)
+>         .typed(adder_proxy::AdderProxy)
+>         .init(5u64)
+>         .code(ADDER_CODE_PATH)  // "test-contracts/adder.mxsc.json"
+>         .new_address(ADDER_ADDRESS)
+>         .run();
+> }
+> ```
+>
+> **Required:** Add to your `Cargo.toml`:
+> ```toml
+> [dev-dependencies.multiversx-sc-scenario]
+> features = ["wasmer-experimental"]
+> ```
 
-> **`ExecutorConfig::full_suite()`:** This mode runs every SC call through the real WASM executor instead of the Rust interpreter. It is only needed when you deliberately want to run the compiled binary (e.g., for benchmarking or cross-compilation verification). Most projects do not need it.
+> **`ExecutorConfig::full_suite()`:** This mode runs every SC call through the real WASM executor instead of the Rust interpreter. It is required when using unregistered contract binaries, and is also useful for benchmarking or cross-compilation verification. Most projects do not need it.
 
 ### Setting Up Accounts
 
@@ -657,9 +686,12 @@ TimestampSeconds::new(100u64)
 // Token IDs – always use TestTokenId
 // Conversion helpers if needed:
 TOKEN_ID.to_token_id()               // TestTokenId → TokenIdentifier
-TOKEN_ID.to_esdt_token_identifier()  // TestTokenId → EsdtTokenIdentifier
-EgldOrEsdtTokenIdentifier::egld()
-EgldOrEsdtTokenIdentifier::esdt(TOKEN_ID)
+TOKEN_ID.to_esdt_token_identifier()  // TestTokenId → EsdtTokenIdentifier (legacy, avoid)
+EgldOrEsdtTokenIdentifier::egld()    // (legacy, avoid)
+EgldOrEsdtTokenIdentifier::esdt(TOKEN_ID)  // (legacy, avoid)
+
+// Note: EsdtTokenIdentifier and EgldOrEsdtTokenIdentifier are kept for older contracts/tests.
+// For new code, use TestTokenId + Payment instead.
 
 // MultiValueVec
 MultiValueVec::from(vec![addr1, addr2])
