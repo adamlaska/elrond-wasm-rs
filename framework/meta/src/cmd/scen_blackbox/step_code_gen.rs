@@ -1,6 +1,6 @@
 use multiversx_sc_scenario::scenario::model::Step;
 
-use super::{scenario_loader::scenario_to_function_name, test_generator::TestGenerator};
+use super::{scenario_loader::ScenarioFile, test_generator::TestGenerator};
 
 impl TestGenerator {
     // -------------------------------------------------------------------------
@@ -45,12 +45,20 @@ impl TestGenerator {
             self.step_writeln(format!("    // {}", comment_text));
         }
 
-        let scenario_name = std::path::Path::new(path)
+        let file_stem = std::path::Path::new(path)
             .file_stem()
             .and_then(|s| s.to_str())
             .unwrap_or(path);
 
-        let steps_function_name = format!("{}_steps", scenario_to_function_name(scenario_name));
+        // Look up generate_test for this file stem so we use the same naming logic
+        // as the declaration site, avoiding `_steps_steps` for .steps.json files.
+        let generate_test = self
+            .scenario_file_map
+            .get(file_stem)
+            .copied()
+            .unwrap_or(true);
+        let steps_function_name =
+            ScenarioFile::steps_function_name_of(file_stem, generate_test);
 
         self.step_writeln(format!("    {}(world);", steps_function_name));
         self.step_writeln("");

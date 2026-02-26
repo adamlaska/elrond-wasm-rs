@@ -2,7 +2,7 @@ use multiversx_sc::abi::ContractAbi;
 use std::collections::HashMap;
 
 use super::const_state::ConstState;
-use super::scenario_loader::{ScenarioFile, scenario_to_function_name};
+use super::scenario_loader::ScenarioFile;
 
 const WORLD_FN_TODO: &str = "fn world() -> ScenarioWorld {
     todo!()
@@ -20,6 +20,8 @@ pub struct TestGenerator {
     pub consts: ConstState,
     /// Buffer for test and step function code
     pub step_buffer: String,
+    /// Maps scenario file_name (stem) → generate_test flag, for ExternalSteps lookup
+    pub scenario_file_map: HashMap<String, bool>,
 }
 
 impl TestGenerator {
@@ -31,6 +33,7 @@ impl TestGenerator {
             new_address_map: HashMap::new(),
             consts: ConstState::default(),
             step_buffer: String::new(),
+            scenario_file_map: HashMap::new(),
         }
     }
 
@@ -51,6 +54,12 @@ impl TestGenerator {
 
     /// Generates the combined test content, storing it in `output`.
     pub fn generate_combined_test_content(&mut self, scenario_files: &[ScenarioFile]) -> String {
+        // Build lookup map so ExternalSteps resolution can find generate_test by file stem
+        self.scenario_file_map = scenario_files
+            .iter()
+            .map(|sf| (sf.file_name.clone(), sf.generate_test))
+            .collect();
+
         // Generate a test function and steps function for each scenario
         for scenario_file in scenario_files {
             self.generate_scenario_test(scenario_file);
@@ -88,8 +97,8 @@ impl TestGenerator {
     /// Generates test and steps functions for a single scenario
     fn generate_scenario_test(&mut self, scenario_file: &ScenarioFile) {
         let scenario = &scenario_file.scenario;
-        let test_name = scenario_to_function_name(&scenario_file.file_name);
-        let steps_function_name = format!("{}_steps", test_name);
+        let test_name = scenario_file.test_name();
+        let steps_function_name = scenario_file.steps_function_name();
 
         // Write scenario comment if available
         if let Some(comment) = &scenario.comment {
