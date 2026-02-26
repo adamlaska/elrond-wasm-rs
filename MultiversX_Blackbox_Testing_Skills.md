@@ -105,6 +105,10 @@ const CODE_PATH: MxscPath = MxscPath::new("output/my-contract.mxsc.json");
 const MY_TOKEN: TestTokenId = TestTokenId::new("MYTOKEN-123456");
 const NFT_ID: TestTokenId = TestTokenId::new("NFT-123456");
 
+// Duration/fee constants – declare with the typed wrapper directly, not as bare u64
+const COOLDOWN_TIME: DurationMillis = DurationMillis::new(86_400);
+const LEVEL_UP_FEE: u64 = 1_000_000_000_000_000;
+
 // Binary constants – declare as typed arrays, never inline in tx calls
 const DEPOSIT_KEY_01: [u8; 32] =
     hex!("d0474a3a065d3f0c0a62ae680ef6435e48eb482899d2ae30ff7a3a4b0ef19c60");
@@ -371,7 +375,7 @@ Examples:
 | Multiple returns | `.returns(A).returns(B)` → returned as tuple |
 | Handle success or error gracefully | `.returns(ReturnsHandledOrError::new().returns(...))` |
 
-Endpoint arguments and expected return values accept any Rust type that implements the right codec trait. Prefer primitive types over managed ones where possible – e.g., use `42u64` or `"hello"` instead of `BigUint::from(42u64)` or `ManagedBuffer::from(b"hello")` when passing arguments or asserting results.
+Endpoint arguments and expected return values accept any Rust type that implements the right codec trait. Prefer primitive types over managed ones where possible – e.g., use `42u64` or `"hello"` instead of `BigUint::from(42u64)` or `ManagedBuffer::from("hello")` when passing arguments or asserting results. `ManagedBuffer::from(s)` accepts a `&str` directly – there is no need for `.as_bytes()` or a `b"..."` byte-string literal.
 
 ### Capturing Multiple Return Values
 
@@ -702,6 +706,11 @@ NonZeroU64::new(100).unwrap()
 // Payment
 Payment::new(TOKEN_ID, 0, AMOUNT_100)
 Payment::try_new(TOKEN_ID, 0, 100u64).unwrap()
+
+// ManagedBuffer – from accepts &str directly; no need for b"..." or .as_bytes()
+ManagedBuffer::from("hello")         // ✅ preferred
+// ManagedBuffer::from(b"hello")    // ❌ avoid
+// ManagedBuffer::from(s.as_bytes()) // ❌ avoid
 ```
 
 ---
