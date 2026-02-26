@@ -32,15 +32,15 @@ num-bigint = "0.4"
 num-traits = "0.2"
 hex = "0.4"
 hex-literal = "1.0"
-log = { version = "0.4.17", features = ["std"] }
-sha2 = "0.10.6"
+log = { version = "0.4", features = ["std"] }
+sha2 = "0.10"
 serde = "1.0"
 serde_json = "1.0"
-pathdiff = "0.2.1"
-itertools = "0.14.0"
+pathdiff = "0.2"
+itertools = "0.14"
 colored = "3.0"
 unwrap-infallible = "1.0"
-simple-error = "0.3.1"
+simple-error = "0.3"
 
 [dependencies.multiversx-sc]
 version = "=0.64.2"

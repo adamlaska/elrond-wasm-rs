@@ -30,7 +30,7 @@ small-int-bug = [] # can be used for testing the buggy mBufferFromSmallIntSigned
 bitflags = "2.9"
 num-traits = { version = "0.2", default-features = false }
 unwrap-infallible = "1.0"
-generic-array = "1.2.0"
+generic-array = "1.2"
 
 [dependencies.multiversx-sc-derive]
 version = "=0.64.2"

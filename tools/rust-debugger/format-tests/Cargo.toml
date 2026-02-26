@@ -20,12 +20,13 @@ path = "../../../framework/scenario"
 version = "=0.21.2"
 path = "../../../chain/vm"
 
+[dependencies]
+hex = "0.4"
+
 [dev-dependencies]
-glob = "0.3.0"
+glob = "0.3"
 
 [workspace]
 members = ["."]
 
-[dependencies]
-hex = "0.4"
 
