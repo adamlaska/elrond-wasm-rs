@@ -58,6 +58,53 @@ And crate group being released requires all crate groups downstream to be releas
 ## Version history
 
 
+### [sc 0.65.0, codec 0.25.0, chain 0.22.0, sdk 0.15.0, scenario-format 0.26.0] - 2026-02-26
+
+- VM:
+	- `DebugHandle` now uses a `Weak` pointer to `TxContext`, fixing LLDB inspection;
+	- Signal error UTF-8 fix;
+	- `VMAddress` alias removed;
+	- Removed deprecated `Shareable` / `with_shared_mut_ref` infrastructure.
+- `sc-meta` new `scen-blackbox` tool that reads scenario JSON files (mandos) and generates Rust blackbox tests
+	- Generates strongly-typed Rust blackbox test code from mandos `.scen.json` files;
+	- Supports payments, variadic arguments, block info, token IDs, addresses, H256 constants, timestamps/durations, 
+- ABI:
+	- `rustMethodName` field added to the JSON ABI, where it differs from the endpoint name;
+	- `specificType` field, used for `TimestampSeconds`, `TimestampMillis`, `DurationSeconds`, `DurationMillis`.
+	- `PaymentMultiValue` ABI fix.
+- TypeAbi changes:
+	- Added `TypeAbiUniversalInput`, to allow developers to bypass proxy argument type restrictions;
+	- `IgnoreValue` blanket `TypeAbiFrom` impl removed; since it was conflicting with `TypeAbiUniversalInput`;
+	- Added `ScenarioValueRaw`, an alias for `TypeAbiUniversalInput<BytesValue>`, used by the `sc-meta scen-blackbox` tool as a placeholder, for when it cannot determine an approriate typed value.
+- Testing improvements:
+	- Support for transaction ids in tests;
+	- `Address` and `H256` const constructors from hex;
+	- Payment API additions and improvements:
+		- `.payment()` calls can be chained, and arguments are automatically merged into a multi-payment, at compile time;
+			- Deprecated `.esdt()` and `.multi_esdt()`, since they are now superseded by `.payment()`
+		- Utility methods for dealing with `NonZeroBigUint`:
+			- `Payment::try_new` with generic error type;
+			- `NonZeroBigUint::try_from` for `u8`, `u16`, `u32`, `u64`, `usize`, and `NonZero<_>`;
+			- `cmp`/`eq` between `NonZeroBigUint` and `BigUint`;
+			- `NonZeroBigUint::one()`;
+		- `TestTokenIdentifier` renamed to `TestTokenId` (old name kept as deprecated alias);
+		- `MultiEgldOrEsdtPayment` to `PaymentVec` conversion check;
+		- Other deprecations:
+			- `MultiEsdtPayment` (superseded by `PaymentVec`);
+			- `TestEsdtTransfer`, `Payment` is now used instead;
+			- `.commit()` in blackbox set/check account (no longer needed);
+		- Scenario payments use `PaymentVec` internally instead of `MultiEgldOrEsdtPayment`.
+- Codec fixes and improvements:
+	- `bool` encode/decode correctness fix;
+	- `num-bigint` encoding fix;
+	- `MultiValueVec` new constructors and unit tests;
+	- Inline annotations adjusted for better performance and consistency.
+- Dependency upgrades:
+	- Upgraded `reqwest`, switched TLS backend to `rustls`;
+	- Dependencies upgraded to the latest versions.
+- LLDB pretty-printer fix.
+
+
 ### [sc 0.64.2, chain 0.21.2, sdk 0.14.2] - 2026-02-18
 - Workaround for `mBufferFromBigIntSigned` VM hook bug:
 	- The hook was incorrectly converting negative numbers to their absolute value;
