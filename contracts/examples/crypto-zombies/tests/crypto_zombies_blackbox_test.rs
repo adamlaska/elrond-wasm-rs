@@ -1,6 +1,6 @@
 use multiversx_sc_scenario::imports::*;
 
-use crypto_zombies::proxy_crypto_zombies;
+use crypto_zombies::proxy;
 
 const OWNER_ADDRESS: TestAddress = TestAddress::new("owner");
 const USER1_ADDRESS: TestAddress = TestAddress::new("user1");
@@ -51,7 +51,7 @@ impl CryptoZombiesState {
             .tx()
             .id("deploy")
             .from(OWNER_ADDRESS)
-            .typed(proxy_crypto_zombies::CryptoZombiesProxy)
+            .typed(proxy::CryptoZombiesProxy)
             .init()
             .code(CODE_PATH)
             .new_address(SC_ADDRESS)
@@ -64,7 +64,7 @@ impl CryptoZombiesState {
             .tx()
             .from(from)
             .to(SC_ADDRESS)
-            .typed(proxy_crypto_zombies::CryptoZombiesProxy)
+            .typed(proxy::CryptoZombiesProxy)
             .create_random_zombie(ManagedBuffer::from(name))
             .run();
         self
@@ -75,7 +75,7 @@ impl CryptoZombiesState {
             .tx()
             .from(from)
             .to(SC_ADDRESS)
-            .typed(proxy_crypto_zombies::CryptoZombiesProxy)
+            .typed(proxy::CryptoZombiesProxy)
             .create_random_zombie(ManagedBuffer::from(name))
             .returns(ExpectError(4, err))
             .run();
@@ -88,7 +88,7 @@ impl CryptoZombiesState {
             .id("level-up")
             .from(from)
             .to(SC_ADDRESS)
-            .typed(proxy_crypto_zombies::CryptoZombiesProxy)
+            .typed(proxy::CryptoZombiesProxy)
             .level_up(zombie_id)
             .payment(Payment::try_new(TestTokenId::EGLD_000000, 0, LEVEL_UP_FEE).unwrap())
             .run();
@@ -106,7 +106,7 @@ impl CryptoZombiesState {
             .tx()
             .from(from)
             .to(SC_ADDRESS)
-            .typed(proxy_crypto_zombies::CryptoZombiesProxy)
+            .typed(proxy::CryptoZombiesProxy)
             .level_up(zombie_id)
             .payment(Payment::try_new(TestTokenId::EGLD_000000, 0, payment).unwrap())
             .returns(ExpectError(4, err))
@@ -119,7 +119,7 @@ impl CryptoZombiesState {
             .tx()
             .from(from)
             .to(SC_ADDRESS)
-            .typed(proxy_crypto_zombies::CryptoZombiesProxy)
+            .typed(proxy::CryptoZombiesProxy)
             .change_name(zombie_id, ManagedBuffer::from(name))
             .run();
         self
@@ -136,7 +136,7 @@ impl CryptoZombiesState {
             .tx()
             .from(from)
             .to(SC_ADDRESS)
-            .typed(proxy_crypto_zombies::CryptoZombiesProxy)
+            .typed(proxy::CryptoZombiesProxy)
             .change_name(zombie_id, ManagedBuffer::from(name))
             .returns(ExpectError(4, err))
             .run();
@@ -154,7 +154,7 @@ impl CryptoZombiesState {
             .tx()
             .from(from)
             .to(SC_ADDRESS)
-            .typed(proxy_crypto_zombies::CryptoZombiesProxy)
+            .typed(proxy::CryptoZombiesProxy)
             .change_dna(zombie_id, dna)
             .returns(ExpectError(4, err))
             .run();
@@ -167,7 +167,7 @@ impl CryptoZombiesState {
             .id("attack")
             .from(from)
             .to(SC_ADDRESS)
-            .typed(proxy_crypto_zombies::CryptoZombiesProxy)
+            .typed(proxy::CryptoZombiesProxy)
             .attack(zombie_id, target_id)
             .run();
         self
@@ -184,7 +184,7 @@ impl CryptoZombiesState {
             .tx()
             .from(from)
             .to(SC_ADDRESS)
-            .typed(proxy_crypto_zombies::CryptoZombiesProxy)
+            .typed(proxy::CryptoZombiesProxy)
             .attack(zombie_id, target_id)
             .returns(ExpectError(4, err))
             .run();
@@ -197,7 +197,7 @@ impl CryptoZombiesState {
             .id("withdraw")
             .from(from)
             .to(SC_ADDRESS)
-            .typed(proxy_crypto_zombies::CryptoZombiesProxy)
+            .typed(proxy::CryptoZombiesProxy)
             .withdraw()
             .run();
         self
@@ -208,7 +208,7 @@ impl CryptoZombiesState {
             .tx()
             .from(from)
             .to(SC_ADDRESS)
-            .typed(proxy_crypto_zombies::CryptoZombiesProxy)
+            .typed(proxy::CryptoZombiesProxy)
             .withdraw()
             .returns(ExpectError(4, err))
             .run();
@@ -219,17 +219,17 @@ impl CryptoZombiesState {
         self.world
             .query()
             .to(SC_ADDRESS)
-            .typed(proxy_crypto_zombies::CryptoZombiesProxy)
+            .typed(proxy::CryptoZombiesProxy)
             .zombie_last_index()
             .returns(ReturnsResultUnmanaged)
             .run()
     }
 
-    fn query_zombie(&mut self, id: usize) -> proxy_crypto_zombies::Zombie<StaticApi> {
+    fn query_zombie(&mut self, id: usize) -> proxy::Zombie<StaticApi> {
         self.world
             .query()
             .to(SC_ADDRESS)
-            .typed(proxy_crypto_zombies::CryptoZombiesProxy)
+            .typed(proxy::CryptoZombiesProxy)
             .zombies(id)
             .returns(ReturnsResult)
             .run()
@@ -239,7 +239,7 @@ impl CryptoZombiesState {
         self.world
             .query()
             .to(SC_ADDRESS)
-            .typed(proxy_crypto_zombies::CryptoZombiesProxy)
+            .typed(proxy::CryptoZombiesProxy)
             .is_ready(zombie_id)
             .returns(ReturnsResultUnmanaged)
             .run()
@@ -249,7 +249,7 @@ impl CryptoZombiesState {
         self.world
             .query()
             .to(SC_ADDRESS)
-            .typed(proxy_crypto_zombies::CryptoZombiesProxy)
+            .typed(proxy::CryptoZombiesProxy)
             .dna_digits()
             .returns(ReturnsResultUnmanaged)
             .run()
@@ -259,7 +259,7 @@ impl CryptoZombiesState {
         self.world
             .query()
             .to(SC_ADDRESS)
-            .typed(proxy_crypto_zombies::CryptoZombiesProxy)
+            .typed(proxy::CryptoZombiesProxy)
             .cooldown_time()
             .returns(ReturnsResultUnmanaged)
             .run()
@@ -562,7 +562,7 @@ fn test_set_crypto_kitties_address_by_owner() {
         .id("set-kitty-address")
         .from(OWNER_ADDRESS)
         .to(SC_ADDRESS)
-        .typed(proxy_crypto_zombies::CryptoZombiesProxy)
+        .typed(proxy::CryptoZombiesProxy)
         .set_crypto_kitties_sc_address(kitty_sc.to_address())
         .run();
 
@@ -571,7 +571,7 @@ fn test_set_crypto_kitties_address_by_owner() {
         .world
         .query()
         .to(SC_ADDRESS)
-        .typed(proxy_crypto_zombies::CryptoZombiesProxy)
+        .typed(proxy::CryptoZombiesProxy)
         .crypto_kitties_sc_address()
         .returns(ReturnsResult)
         .run();
@@ -593,7 +593,7 @@ fn test_set_crypto_kitties_address_non_owner_fails() {
         .tx()
         .from(USER1_ADDRESS)
         .to(SC_ADDRESS)
-        .typed(proxy_crypto_zombies::CryptoZombiesProxy)
+        .typed(proxy::CryptoZombiesProxy)
         .set_crypto_kitties_sc_address(USER1_ADDRESS.to_address())
         .returns(ExpectError(4, "Endpoint can only be called by owner"))
         .run();
