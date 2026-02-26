@@ -75,7 +75,7 @@ And crate group being released requires all crate groups downstream to be releas
 - TypeAbi changes:
 	- Added `TypeAbiUniversalInput`, to allow developers to bypass proxy argument type restrictions;
 	- `IgnoreValue` blanket `TypeAbiFrom` impl removed; since it was conflicting with `TypeAbiUniversalInput`;
-	- Added `ScenarioValueRaw`, an alias for `TypeAbiUniversalInput<BytesValue>`, used by the `sc-meta scen-blackbox` tool as a placeholder, for when it cannot determine an approriate typed value.
+	- Added `ScenarioValueRaw`, an alias for `TypeAbiUniversalInput<BytesValue>`, used by the `sc-meta scen-blackbox` tool as a placeholder, for when it cannot determine an appropriate typed value.
 - Testing improvements:
 	- Support for transaction ids in tests;
 	- `Address` and `H256` const constructors from hex;
