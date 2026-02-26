@@ -57,8 +57,7 @@ impl TestGenerator {
             .get(file_stem)
             .copied()
             .unwrap_or(true);
-        let steps_function_name =
-            ScenarioFile::steps_function_name_of(file_stem, generate_test);
+        let steps_function_name = ScenarioFile::steps_function_name_of(file_stem, generate_test);
 
         self.step_writeln(format!("    {}(world);", steps_function_name));
         self.step_writeln("");

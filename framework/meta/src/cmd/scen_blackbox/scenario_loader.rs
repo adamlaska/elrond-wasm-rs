@@ -48,10 +48,7 @@ pub fn load_scenario_files(scenarios_dir: &Path) -> Vec<ScenarioFile> {
     scenario_files
 }
 
-fn load_scenario_files_recursive(
-    current_dir: &Path,
-    scenario_files: &mut Vec<ScenarioFile>,
-) {
+fn load_scenario_files_recursive(current_dir: &Path, scenario_files: &mut Vec<ScenarioFile>) {
     let Ok(entries) = fs::read_dir(current_dir) else {
         return;
     };
@@ -67,7 +64,7 @@ fn load_scenario_files_recursive(
                         scenario_files.push(scenario_file);
                     }
                 } else if file_name_str.ends_with(".steps.json") {
-                        if let Some(scenario_file) = load_scenario_file(&path, false) {
+                    if let Some(scenario_file) = load_scenario_file(&path, false) {
                         scenario_files.push(scenario_file);
                     }
                 }
@@ -115,6 +112,5 @@ mod tests {
         );
         assert_eq!(scenario_to_function_name("my-test.scen"), "my_test_scen");
         assert_eq!(scenario_to_function_name("a-b-c.d.e"), "a_b_c_d_e");
-
     }
 }
