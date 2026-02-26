@@ -87,6 +87,27 @@ use multiversx_sc_scenario::{
 };
 ```
 
+### Generating the Contract Proxy
+
+The typed proxy used in `.typed(...)` calls is auto-generated from the contract ABI. To enable generation, add an `sc-config.toml` at the contract root:
+
+```toml
+[[proxy]]
+path = "src/my_contract_proxy.rs"
+```
+
+Then run:
+
+```bash
+sc-meta all proxy
+```
+
+This reads the ABI and writes the proxy file to the declared path. The file must be committed and kept in sync with the ABI.
+
+> **Naming convention:** the proxy file name is derived from the crate name with hyphens replaced by underscores, e.g., `order-book-pair` → `src/order_book_pair_proxy.rs`.
+
+Rebuild the proxy whenever the contract ABI changes (new endpoints, modified argument types, or changed return types).
+
 ### Top-Level Constants
 
 Declare **all** addresses, token IDs, code paths, and binary constants at the top of the file.
