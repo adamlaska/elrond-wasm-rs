@@ -58,8 +58,7 @@ And crate group being released requires all crate groups downstream to be releas
 ## Version history
 
 
-### [sc 0.65.0, codec 0.25.0, chain 0.22.0, sdk 0.15.0, scenario-format 0.26.0] - 2026-02-26
-
+### [sc 0.65.0, codec 0.25.0, chain 0.22.0, sdk 0.15.0, scenario-format 0.26.0] - 2026-02-27
 - VM:
 	- `DebugHandle` now uses a `Weak` pointer to `TxContext`, fixing LLDB inspection;
 	- Signal error UTF-8 fix;
